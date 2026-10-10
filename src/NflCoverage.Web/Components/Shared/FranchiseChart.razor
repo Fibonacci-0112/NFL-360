@@ -1,5 +1,5 @@
 @using System.Text.Json
-@* Regular-season win % by season; playoff seasons in team colour, Super Bowl titles in gold. *@
+@* Regular-season win % by season; playoff seasons in team colour, Super Bowl titles in gold with a trophy. *@
 <EChart OptionsJson="@Options()" Height="@Height" Label="@($"{Team.Name} regular-season win percentage by season")" />
 <div class="chart-legend">
     <span><i style="background:@Team.PrimaryColor"></i>Playoffs</span>
@@ -10,6 +10,7 @@
 @code {
     private const string Champion = "#d4af37";
     private const string Missed = "#b0bec5";
+    private const string BarOutline = "rgba(128, 128, 128, 0.45)";
 
     [Parameter, EditorRequired] public IReadOnlyList<FranchiseSeason> Seasons { get; set; } = [];
 
@@ -35,7 +36,10 @@
                         name = s.Season.ToString(System.Globalization.CultureInfo.InvariantCulture),
                         value = Math.Round(s.WinPct * 100, 1),
                         detail = Format.Record(s.Wins, s.Losses, s.Ties) + (s.Playoffs == PlayoffRound.None ? "" : " · " + Format.Playoffs(s.Playoffs, s.PlayoffLosses > 0)),
-                        itemStyle = new { color = s.Playoffs switch { PlayoffRound.Champion => Champion, PlayoffRound.None => Missed, _ => Team.PrimaryColor } },
+                        // The thin mid-gray outline keeps black team colors (Raiders, Steelers) visible on dark backgrounds.
+                        // Titles are marked above the bar too: gold alone cannot tell them apart from a gold team's playoff bars.
+                        label = new { show = s.Playoffs == PlayoffRound.Champion, position = "top", formatter = "🏆", fontSize = 14 },
+                        itemStyle = new { color = s.Playoffs switch { PlayoffRound.Champion => Champion, PlayoffRound.None => Missed, _ => Team.PrimaryColor }, borderColor = BarOutline, borderWidth = 1, borderRadius = new[] { 3, 3, 0, 0 } },
                     }),
                     markLine = new
                     {

@@ -23,29 +23,46 @@ else if (_team is null || _history is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4 team-header flex-wrap" Style="@($"--team-color:{_team.PrimaryColor}")">
+    var totals = _history.Totals;
+    <div class="team-accented franchise-page" style="@Format.TeamColors(_team.PrimaryColor, _team.SecondaryColor)">
+    <header class="team-banner mb-6">
         @if (_team.LogoUrl is not null)
         {
-            <img src="@_team.LogoUrl" alt="" width="72" height="72" />
+            <span class="team-banner-logo"><img src="@_team.LogoUrl" alt="" width="88" height="88" /></span>
         }
         <div>
-            <MudText Typo="Typo.h4">@_team.Name</MudText>
-            <MudText Typo="Typo.subtitle1">
-                Since @(_history.Seasons.Count > 0 ? _history.Seasons[0].Season : "") ·
-                <a href="/teams/@_team.Id">Current season</a> ·
+            <span class="eyebrow">Franchise history@(_history.Seasons.Count > 0 ? $" · since {_history.Seasons[0].Season}" : "")</span>
+            <h1>@_team.Name</h1>
+            <div class="team-banner-record">
+                <strong>@Format.Record(totals.Wins, totals.Losses, totals.Ties)</strong>
+                <span>all-time · @Format.WinPct(totals.WinPct)</span>
+            </div>
+            @if (Titles.Count > 0)
+            {
+                <div class="trophy-shelf" aria-label="Super Bowl and conference titles">
+                    @foreach (var (season, champion) in Titles)
+                    {
+                        <a class="trophy @(champion ? "gold" : "silver")" href="/teams/@_team.Id/@season"
+                           title="@(champion ? $"Won Super Bowl {season} season" : $"Conference champion {season} season")">
+                            <MudIcon Icon="@(champion ? Icons.Material.Filled.EmojiEvents : Icons.Material.Filled.MilitaryTech)" aria-hidden="true" />@season
+                        </a>
+                    }
+                </div>
+            }
+            <nav class="team-banner-links" aria-label="Team pages">
+                <a href="/teams/@_team.Id">Current season</a>
                 <a href="/history/head-to-head?a=@_team.Id">Head-to-head</a>
-            </MudText>
+            </nav>
         </div>
-    </MudStack>
+    </header>
 
-    var totals = _history.Totals;
     <MudGrid Class="mb-4">
-        <MudItem xs="6" sm="4" md="2"><Stat Label="Record" Value="@Format.Record(totals.Wins, totals.Losses, totals.Ties)" /></MudItem>
-        <MudItem xs="6" sm="4" md="2"><Stat Label="Win %" Value="@Format.WinPct(totals.WinPct)" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Seasons" Value="@totals.Seasons.ToString()" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Playoff W-L" Value="@Format.Record(totals.PlayoffWins, totals.PlayoffLosses, 0)" /></MudItem>
         <MudItem xs="6" sm="4" md="2"><Stat Label="Playoff trips" Value="@totals.PlayoffAppearances.ToString()" /></MudItem>
         <MudItem xs="6" sm="4" md="2"><Stat Label="Division titles" Value="@totals.DivisionTitles.ToString()" /></MudItem>
         <MudItem xs="6" sm="4" md="2"><Stat Label="Conference titles" Value="@totals.ConferenceTitles.ToString()" /></MudItem>
-        <MudItem xs="6" sm="4" md="2"><Stat Label="Super Bowls" Value="@totals.SuperBowlWins.ToString()" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Super Bowls" Value="@totals.SuperBowlWins.ToString()" Class="@(totals.SuperBowlWins > 0 ? "stat-gold" : null)" /></MudItem>
     </MudGrid>
 
     <MudPaper Class="pa-2 mb-4" Elevation="1">
@@ -60,14 +77,21 @@ else
                 <tbody>
                     @foreach (var season in _history.Seasons.Reverse())
                     {
-                        <tr class="@(season.Playoffs == PlayoffRound.None ? "out" : null)">
-                            <td><a href="/teams/@_team.Id/@season.Season">@season.Season</a></td>
+                        var champion = season.Playoffs == PlayoffRound.Champion;
+                        <tr class="season-row @(season.Playoffs == PlayoffRound.None ? "out" : champion ? "champion" : null)" style="@RowStripe(season.Playoffs)">
+                            <td>
+                                <a href="/teams/@_team.Id/@season.Season">@season.Season</a>
+                                @if (champion)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Small" Style="color:#D4AF37;vertical-align:-3px" aria-label="Super Bowl champion" />
+                                }
+                            </td>
                             <td class="num">@Format.Record(season.Wins, season.Losses, season.Ties)</td>
                             <td class="num">@Format.WinPct(season.WinPct)</td>
                             <td class="num">@season.PointsFor</td>
                             <td class="num">@season.PointsAgainst</td>
                             <td class="num">@((season.PointsFor - season.PointsAgainst).ToString("+0;-0;0"))</td>
-                            <td>@(season.DivisionTitle == true ? "Champion" : "")</td>
+                            <td>@if (season.DivisionTitle == true) { <span class="title-pill">Champion</span> }</td>
                             <td class="num">@(season.Seed?.ToString() ?? "")</td>
                             <td>
                                 @Format.Playoffs(season.Playoffs, season.PlayoffLosses > 0)
@@ -82,6 +106,7 @@ else
             </MudSimpleTable>
         </div>
     </MudPaper>
+    </div>
 }
 
 @code {
@@ -91,6 +116,22 @@ else
     private IReadOnlyList<TeamDto> _teamList = [];
     private FranchiseHistory? _history;
     private bool _loading = true;
+
+    // Super Bowl wins (gold) and conference titles that ended in a Super Bowl loss (silver), most recent first.
+    private List<(int Season, bool Champion)> Titles =>
+        _history is null
+            ? []
+            : [.. _history.Seasons.Where(s => s.Playoffs is PlayoffRound.Champion or PlayoffRound.SuperBowl)
+                .OrderByDescending(s => s.Season)
+                .Select(s => (s.Season, s.Playoffs == PlayoffRound.Champion))];
+
+    // Playoff seasons are striped in the team accent, Super Bowl wins in gold; missed seasons get no stripe.
+    private static string? RowStripe(PlayoffRound round) => round switch
+    {
+        PlayoffRound.None => null,
+        PlayoffRound.Champion => "--row-team:#D4AF37",
+        _ => "--row-team:var(--team-accent)",
+    };
 
     protected override async Task OnParametersSetAsync()
     {

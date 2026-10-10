@@ -20,7 +20,7 @@ else if (_player is null)
 else
 {
     var team = _player.LatestTeam is { } latest ? _teams.GetValueOrDefault(latest) : null;
-    <div class="player-page" style="@TeamColors(_player.LatestTeam)">
+    <div class="team-accented" style="@TeamColors(_player.LatestTeam)">
     <header class="team-banner player-banner mb-6">
         @if (team?.LogoUrl is { } logo)
         {
@@ -231,7 +231,7 @@ else
                     name = _primary.Label,
                     type = "bar",
                     // Each season's bar takes the color of that season's team.
-                    data = _chartLines.Select(l => new { value = Math.Round(_primary.Value(l.Stats), 1), itemStyle = new { color = TeamColor(l.Team), borderRadius = new[] { 4, 4, 0, 0 } } }),
+                    data = _chartLines.Select(l => new { value = Math.Round(_primary.Value(l.Stats), 1), itemStyle = new { color = TeamColor(l.Team), borderColor = "rgba(128, 128, 128, 0.45)", borderWidth = 1, borderRadius = new[] { 4, 4, 0, 0 } } }),
                 },
             },
         };
