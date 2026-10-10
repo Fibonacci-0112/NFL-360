@@ -318,7 +318,7 @@ td.heat { background: color-mix(in srgb, var(--nfl-up) calc(var(--p) * 45%), tra
   border-radius: 20px; color: #fff;
   background:
     radial-gradient(circle at 12% 50%, rgba(255, 255, 255, 0.18), transparent 40%),
-    linear-gradient(115deg, color-mix(in srgb, var(--team-color) var(--team-depth, 88%), #000) 0%, color-mix(in srgb, var(--team-color) 50%, #000) 100%);
+    linear-gradient(115deg, color-mix(in srgb, var(--team-color) var(--team-depth, 88%), #000) 0%, color-mix(in srgb, var(--team-color) var(--team-depth-end, 50%), #000) 100%);
   border-bottom: 6px solid var(--team-color-2);
   box-shadow: 0 20px 40px -24px color-mix(in srgb, var(--team-color) 80%, #000);
 }
@@ -372,7 +372,11 @@ td.heat { background: color-mix(in srgb, var(--nfl-up) calc(var(--p) * 45%), tra
 .player-page .mud-simple-table.mud-table-dense thead th { background: color-mix(in srgb, var(--team-accent) 9%, var(--nfl-table-head)); }
 .player-page .mud-simple-table tbody tr:hover { background: color-mix(in srgb, var(--team-accent) 7%, transparent); }
 .player-page .link-tabs.small a:hover { border-color: var(--team-accent); }
-.player-page .link-tabs.small a.active { background: var(--team-accent); border-color: var(--team-accent); color: var(--team-ink, #fff); }
+/* Filled with the same contrast-checked shade as the banner so white text stays readable in either theme;
+   the (dark-mode lightened) accent only outlines it. */
+.player-page .link-tabs.small a.active {
+  background: color-mix(in srgb, var(--team-color) var(--team-depth, 88%), #000); border-color: var(--team-accent); color: #fff;
+}
 .player-page tr.total td { border-top-color: var(--team-accent); }
 /* Each career season is tagged with the color of the team played for that year. */
 .player-page tr.season-row > td:first-child { box-shadow: inset 4px 0 0 var(--row-team); padding-left: 1.25rem; }
