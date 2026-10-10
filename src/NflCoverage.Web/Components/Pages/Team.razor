@@ -19,27 +19,28 @@ else if (_team is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4 team-header" Style="@($"--team-color:{_team.PrimaryColor}")">
+    <header class="team-banner mb-6" style="@($"--team-color:{_team.PrimaryColor};--team-color-2:{_team.SecondaryColor}")">
         @if (_team.LogoUrl is not null)
         {
-            <img src="@_team.LogoUrl" alt="" width="72" height="72" />
+            <span class="team-banner-logo"><img src="@_team.LogoUrl" alt="" width="88" height="88" /></span>
         }
         <div>
-            <MudText Typo="Typo.h4">@_team.Name</MudText>
-            <MudText Typo="Typo.subtitle1">
-                @_season · @_team.Division
-                @if (_standing is not null)
-                {
-                    <span> · @Format.Record(_standing.Wins, _standing.Losses, _standing.Ties), @Format.Ordinal(_standing.DivisionRank) in division</span>
-                }
-            </MudText>
-            <MudText Typo="Typo.body2">
-                <a href="/history/teams/@Id">Franchise history</a> ·
-                <a href="/history/head-to-head?a=@Id">Head-to-head</a> ·
+            <span class="eyebrow">@_season · @_team.Division</span>
+            <h1>@_team.Name</h1>
+            @if (_standing is not null)
+            {
+                <div class="team-banner-record">
+                    <strong>@Format.Record(_standing.Wins, _standing.Losses, _standing.Ties)</strong>
+                    <span>@Format.Ordinal(_standing.DivisionRank) in division</span>
+                </div>
+            }
+            <nav class="team-banner-links" aria-label="Team pages">
+                <a href="/history/teams/@Id">Franchise history</a>
+                <a href="/history/head-to-head?a=@Id">Head-to-head</a>
                 <a href="/stats/teams/@_season">Team efficiency</a>
-            </MudText>
+            </nav>
         </div>
-    </MudStack>
+    </header>
 
     @if (_odds is not null)
     {

@@ -5,14 +5,14 @@
     Interactive Server island: the circuit refreshes scores from the League module every 30 seconds, which is
     fed by the ESPN live poller. No client-side polling or SignalR plumbing of our own is needed.
 *@
-<MudPaper Class="pa-3" Elevation="1">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.h6">@_title</MudText>
+<section class="scoreboard-panel">
+    <div class="scoreboard-head">
+        <h2>@_title</h2>
         @if (_games.Any(g => g.Status == GameStatus.InProgress))
         {
-            <MudChip T="string" Color="Color.Error" Size="Size.Small">LIVE</MudChip>
+            <span class="live-pill"><i></i>Live</span>
         }
-    </MudStack>
+    </div>
     @if (_games.Count == 0)
     {
         <MudText Typo="Typo.body2">No games scheduled.</MudText>
@@ -20,14 +20,16 @@
     <div class="scoreboard">
         @foreach (var game in _games)
         {
-            <div class="score-card @(game.Status == GameStatus.InProgress ? "live" : "")">
-                <div class="score-line"><TeamBadge Id="@game.AwayTeam" Team="Team(game.AwayTeam)" /><span>@game.AwayScore</span></div>
-                <div class="score-line"><TeamBadge Id="@game.HomeTeam" Team="Team(game.HomeTeam)" /><span>@game.HomeScore</span></div>
+            var final = game.Status == GameStatus.Final;
+            <div class="score-card @(game.Status == GameStatus.InProgress ? "live" : final ? "final" : "upcoming")"
+                 style="--away:@(Team(game.AwayTeam)?.PrimaryColor ?? "#888");--home:@(Team(game.HomeTeam)?.PrimaryColor ?? "#888")">
+                <div class="score-line @(final && game.AwayScore > game.HomeScore ? "winner" : "")"><TeamBadge Id="@game.AwayTeam" Team="Team(game.AwayTeam)" /><span>@game.AwayScore</span></div>
+                <div class="score-line @(final && game.HomeScore > game.AwayScore ? "winner" : "")"><TeamBadge Id="@game.HomeTeam" Team="Team(game.HomeTeam)" /><span>@game.HomeScore</span></div>
                 <div class="score-status">@(game.Status switch { GameStatus.Final => "Final", GameStatus.InProgress => game.StatusDetail ?? "Live", _ => Format.Kickoff(game.Kickoff) })</div>
             </div>
         }
     </div>
-</MudPaper>
+</section>
 
 @code {
     private List<GameDto> _games = [];

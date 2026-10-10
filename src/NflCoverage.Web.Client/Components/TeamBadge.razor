@@ -1,5 +1,13 @@
 <span class="team-badge" title="@Team?.Name">
-    <span class="team-dot" style="background:@(Team?.PrimaryColor ?? "#888")"></span>@Id
+    @if (Team?.LogoUrl is { } logo)
+    {
+        <img class="team-logo" src="@logo" alt="" width="22" height="22" loading="lazy" />
+    }
+    else
+    {
+        <span class="team-dot" style="background:@(Team?.PrimaryColor ?? "#888")"></span>
+    }
+    @Id
 </span>
 
 @code {

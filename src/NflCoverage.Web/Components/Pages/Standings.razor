@@ -43,7 +43,7 @@ else
                             @foreach (var row in _standings.Teams.Where(t => t.Conference == conference).OrderBy(t => t.ConferenceRank))
                             {
                                 <tr class="@(row.Seed is null ? "out" : row.Seed <= 4 ? "division-winner" : "wild-card") @(row.Seed == PlayoffCount ? "cut-line" : "")">
-                                    <td>@(row.Seed?.ToString() ?? "")</td>
+                                    <td>@if (row.Seed is { } seed) { <span class="seed-pill">@seed</span> }</td>
                                     <td><a href="/teams/@row.TeamId"><TeamBadge Id="@row.TeamId" Team="Team(row.TeamId)" /></a></td>
                                     <td class="num">@Format.Record(row.Wins, row.Losses, row.Ties)</td>
                                     <td class="num">@Format.WinPct(row.WinPct)</td>
