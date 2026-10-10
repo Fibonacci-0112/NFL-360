@@ -19,7 +19,7 @@ else if (_team is null)
 }
 else
 {
-    <header class="team-banner mb-6" style="@($"--team-color:{_team.PrimaryColor};--team-color-2:{_team.SecondaryColor}")">
+    <header class="team-banner mb-6" style="@Format.TeamColors(_team.PrimaryColor, _team.SecondaryColor)">
         @if (_team.LogoUrl is not null)
         {
             <span class="team-banner-logo"><img src="@_team.LogoUrl" alt="" width="88" height="88" /></span>

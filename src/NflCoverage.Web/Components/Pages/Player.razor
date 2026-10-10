@@ -20,37 +20,50 @@ else if (_player is null)
 else
 {
     var team = _player.LatestTeam is { } latest ? _teams.GetValueOrDefault(latest) : null;
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4 team-header flex-wrap" Style="@($"--team-color:{team?.PrimaryColor ?? "#888"}")">
-        @if (_player.HeadshotUrl is not null)
+    <div class="player-page" style="@TeamColors(_player.LatestTeam)">
+    <header class="team-banner player-banner mb-6">
+        @if (team?.LogoUrl is { } logo)
         {
-            <img class="headshot-large" src="@_player.HeadshotUrl" alt="@_player.Name" width="120" height="120" />
+            <img class="player-banner-watermark" src="@logo" alt="" aria-hidden="true" />
         }
+        <span class="player-banner-photo">
+            @if (_player.HeadshotUrl is not null)
+            {
+                <img src="@_player.HeadshotUrl" alt="@_player.Name" width="120" height="120" />
+            }
+        </span>
         <div>
-            <MudText Typo="Typo.h4">@_player.Name</MudText>
-            <MudText Typo="Typo.subtitle1">
+            <span class="eyebrow">
                 @(_player.Position ?? "")
-                @if (_player.LatestTeam is { } latestTeam)
-                {
-                    <span> · </span><a href="/teams/@latestTeam"><TeamBadge Id="@latestTeam" Team="@team" /></a>
-                }
                 @if (_player.RookieSeason is { } rookie)
                 {
                     <span> · @rookie–@(_player.LastSeason?.ToString() ?? "")</span>
                 }
-            </MudText>
-            <dl class="bio">
+            </span>
+            <h1>@_player.Name</h1>
+            @if (_player.LatestTeam is { } latestTeam)
+            {
+                <a class="player-banner-team" href="/teams/@latestTeam">
+                    @if (team?.LogoUrl is { } teamLogo)
+                    {
+                        <img src="@teamLogo" alt="" width="28" height="28" />
+                    }
+                    @(team?.Name ?? latestTeam)
+                </a>
+            }
+            <dl class="player-banner-bio">
                 @if (_player.BirthDate is { } born)
                 {
-                    <dt>Born</dt><dd>@born.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture) (age @Age(born))</dd>
+                    <div><dt>Born</dt><dd>@born.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture) (age @Age(born))</dd></div>
                 }
                 @if (_player.College is { } college)
                 {
-                    <dt>College</dt><dd>@college</dd>
+                    <div><dt>College</dt><dd>@college</dd></div>
                 }
-                <dt>Draft</dt><dd>@Draft(_player)</dd>
+                <div><dt>Draft</dt><dd>@Draft(_player)</dd></div>
             </dl>
         </div>
-    </MudStack>
+    </header>
 
     <LinkTabs Label="Season type" Class="mb-3 small" Items="@(new[] { ("Regular season", $"/players/{Id}", _type == SeasonType.Regular), ("Postseason", $"/players/{Id}?type=POST", _type == SeasonType.Postseason) })" />
 
@@ -68,7 +81,7 @@ else
                     <tbody>
                         @foreach (var line in _lines)
                         {
-                            <tr>
+                            <tr class="season-row" style="@($"--row-team:{TeamColor(line.Team)}")">
                                 <td><a href="/stats/players/@line.Season">@line.Season</a></td>
                                 <td>@if (line.Team is { } t) { <a href="/teams/@t/@line.Season"><TeamBadge Id="@t" Team="@_teams.GetValueOrDefault(t)" /></a> }</td>
                                 <td class="num">@line.Games</td>
@@ -126,6 +139,7 @@ else
             </div>
         }
     </MudPaper>
+    </div>
 }
 
 @code {
@@ -143,6 +157,7 @@ else
     private IReadOnlyList<PlayerGameStats> _games = [];
     private Dictionary<string, GameDto> _schedule = [];
     private Dictionary<string, TeamInfo> _teams = [];
+    private Dictionary<string, TeamDto> _teamColors = [];
     private bool _loading = true;
 
     protected override async Task OnParametersSetAsync()
@@ -150,7 +165,9 @@ else
         _loading = true;
         _type = SeasonTypes.Parse(TypeQuery);
         _player = await Stats.GetPlayerAsync(Id);
-        _teams = Format.Directory(await League.GetTeamsAsync());
+        var teams = await League.GetTeamsAsync();
+        _teams = Format.Directory(teams);
+        _teamColors = teams.ToDictionary(t => t.Id);
         if (_player is not null)
         {
             var career = await Stats.GetPlayerCareerAsync(Id);
@@ -165,6 +182,14 @@ else
 
         _loading = false;
     }
+
+    // Players without a team fall back to the league navy and red.
+    private string TeamColor(string? team) => team is not null && _teamColors.TryGetValue(team, out var t) ? t.PrimaryColor : "#013369";
+
+    private string TeamColors(string? team) =>
+        team is not null && _teamColors.TryGetValue(team, out var t)
+            ? Format.TeamColors(t.PrimaryColor, t.SecondaryColor)
+            : Format.TeamColors("#013369", "#D50A0A");
 
     private int Age(DateOnly born)
     {
@@ -205,8 +230,8 @@ else
                 {
                     name = _primary.Label,
                     type = "bar",
-                    data = _chartLines.Select(l => Math.Round(_primary.Value(l.Stats), 1)),
-                    itemStyle = new { color = _player?.LatestTeam is { } t ? _teams.GetValueOrDefault(t)?.PrimaryColor : "#013369" },
+                    // Each season's bar takes the color of that season's team.
+                    data = _chartLines.Select(l => new { value = Math.Round(_primary.Value(l.Stats), 1), itemStyle = new { color = TeamColor(l.Team), borderRadius = new[] { 4, 4, 0, 0 } } }),
                 },
             },
         };

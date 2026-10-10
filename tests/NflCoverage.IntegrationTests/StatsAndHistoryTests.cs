@@ -217,6 +217,15 @@ public class StatsAndHistoryTests(NflAppFixture app)
     }
 
     [Fact]
+    public async Task Player_page_is_accented_in_the_current_team_colors()
+    {
+        var html = await _client.GetStringAsync($"/players/{Mahomes}", Ct);
+
+        html.Should().Contain("--team-color:#E31837;--team-color-2:#FFB612", "Mahomes plays for Kansas City");
+        html.Should().Contain("--row-team:#E31837", "each career season is tagged with that season's team");
+    }
+
+    [Fact]
     public async Task Leaders_page_lists_the_leader_and_pages_through_the_url()
     {
         var first = await _client.GetStringAsync("/stats/players/2023", Ct);

@@ -29,6 +29,33 @@ internal static class Format
     public static Dictionary<string, TeamInfo> Directory(IEnumerable<TeamDto> teams) =>
         teams.ToDictionary(t => t.Id, t => new TeamInfo(t.Id, t.Name, t.Conference, t.Division, t.PrimaryColor, t.LogoUrl));
 
+    /// <summary>
+    /// CSS custom properties for a team-colored banner or page: the two team colors, how far to darken the banner
+    /// (light primaries such as the Saints' gold need more to carry white text), and the ink for text on the accent.
+    /// </summary>
+    public static string TeamColors(string primary, string secondary)
+    {
+        var light = RelativeLuminance(primary) > 0.35;
+        return $"--team-color:{primary};--team-color-2:{secondary};--team-depth:{(light ? "60%" : "88%")};--team-ink:{(light ? "#14213D" : "#fff")}";
+    }
+
+    /// <summary>WCAG relative luminance of a #rrggbb color; unparseable colors count as dark.</summary>
+    internal static double RelativeLuminance(string hex)
+    {
+        if (hex is not ['#', _, _, _, _, _, _] || !int.TryParse(hex.AsSpan(1), NumberStyles.HexNumber, Invariant, out var rgb))
+        {
+            return 0;
+        }
+
+        static double Channel(int value)
+        {
+            var c = value / 255.0;
+            return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+        }
+
+        return (0.2126 * Channel((rgb >> 16) & 0xFF)) + (0.7152 * Channel((rgb >> 8) & 0xFF)) + (0.0722 * Channel(rgb & 0xFF));
+    }
+
     public static string Number(double value) => value.ToString("#,0.#", Invariant);
 
     public static string Decimal(double? value, string format = "0.0") => value?.ToString(format, Invariant) ?? "–";
