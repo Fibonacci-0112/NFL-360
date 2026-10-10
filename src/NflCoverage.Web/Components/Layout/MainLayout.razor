@@ -1,7 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 
-<MudThemeProvider Theme="Theme" />
+<MudThemeProvider Theme="Theme" IsDarkMode="IsDark" />
 
 <MudLayout>
     <MudAppBar Elevation="0" Color="Color.Primary" Class="site-header">
@@ -19,6 +19,10 @@
         <form method="get" action="/players" class="nav-search" role="search">
             <input type="search" name="q" placeholder="Search players" aria-label="Search players" minlength="2" required />
         </form>
+        <button type="button" class="theme-toggle" data-theme-toggle
+                aria-label="@(IsDark ? "Switch to light mode" : "Switch to dark mode")" title="@(IsDark ? "Light mode" : "Dark mode")">
+            <MudIcon Icon="@(IsDark ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" Size="Size.Small" />
+        </button>
     </MudAppBar>
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6 page">
@@ -49,6 +53,10 @@
         ("History", "/history", ["history"]),
     ];
 
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private bool IsDark => ThemePreference.IsDark(HttpContext);
+
     private bool IsActive(string[] prefixes)
     {
         var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
@@ -72,7 +80,22 @@
             LinesDefault = "#E4E8EF",
             TableLines = "#E9EDF3",
         },
-        PaletteDark = new PaletteDark { Primary = "#4A8FE7", Secondary = "#FF5252" },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#5B9BEF",
+            Secondary = "#FF4D4D",
+            AppbarBackground = "#00152E",
+            Background = "#0B1220",
+            Surface = "#131C2E",
+            DrawerBackground = "#131C2E",
+            TextPrimary = "#E6EAF2",
+            TextSecondary = "#9AA4B8",
+            LinesDefault = "#25314A",
+            LinesInputs = "#3A4763",
+            TableLines = "#202B42",
+            Divider = "#25314A",
+            ActionDefault = "#B4BDCE",
+        },
         LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" },
         Typography = new Typography
         {
