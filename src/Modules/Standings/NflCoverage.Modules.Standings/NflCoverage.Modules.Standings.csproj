@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NflCoverage.Modules.Standings.Contracts\NflCoverage.Modules.Standings.Contracts.csproj" />
+    <ProjectReference Include="..\..\League\NflCoverage.Modules.League.Contracts\NflCoverage.Modules.League.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\NflCoverage.Rules\NflCoverage.Rules.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+<MudPaper Class="pa-3 stat" Elevation="1">
+    <div class="stat-value">@Value</div>
+    <div class="stat-label">@Label</div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+}

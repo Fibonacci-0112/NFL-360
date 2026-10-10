@@ -1,0 +1,9 @@
+<span class="team-badge" title="@Team?.Name">
+    <span class="team-dot" style="background:@(Team?.PrimaryColor ?? "#888")"></span>@Id
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+    [Parameter] public TeamInfo? Team { get; set; }
+}

@@ -1,0 +1,14 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>nfl-360-coverage-apphost</UserSecretsId>
+    <!-- The Aspire CLI bundle is optional; dotnet run works without it. -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NflCoverage.Web\NflCoverage.Web.csproj" />
+  </ItemGroup>
+</Project>

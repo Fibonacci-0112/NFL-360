@@ -1,0 +1,203 @@
+@page "/playoffs/what-if/{Season:int?}"
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@inject HttpClient Http
+
+<PageTitle>What-if playoff simulator</PageTitle>
+
+@* Popovers (the week select) need a provider inside this interactive island; the layout is static. *@
+<MudPopoverProvider />
+
+<MudText Typo="Typo.h4" GutterBottom="true">What-if playoff simulator</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">
+    Pick winners for upcoming games and the season is re-simulated <strong>in your browser</strong>
+    (@Iterations.ToString("N0") runs). Unpicked games are simulated from team ratings.
+</MudText>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Warning">@_error</MudAlert>
+}
+else if (_data is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudSelect T="int" Label="Week" Value="_week" ValueChanged="w => _week = w" Dense="true" Style="max-width:140px">
+                        @foreach (var week in _weeks)
+                        {
+                            <MudSelectItem Value="week">Week @week</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Reset" Disabled="_picks.Count == 0">
+                        Reset @_picks.Count pick(s)
+                    </MudButton>
+                </MudStack>
+
+                @foreach (var game in _data.Input.RemainingGames.Where(g => g.Week == _week))
+                {
+                    var pick = _picks.TryGetValue(game.Id, out var p) ? p : (ForcedOutcome?)null;
+                    <div class="pick-row">
+                        <MudButton Size="Size.Small" Variant="@(pick == ForcedOutcome.AwayWin ? Variant.Filled : Variant.Outlined)"
+                                   Color="Color.Primary" OnClick="() => PickAsync(game.Id, ForcedOutcome.AwayWin)">
+                            <TeamBadge Id="@game.AwayTeam" Team="TeamOf(game.AwayTeam)" />
+                        </MudButton>
+                        <span class="pick-at">@(game.NeutralSite ? "vs" : "@")</span>
+                        <MudButton Size="Size.Small" Variant="@(pick == ForcedOutcome.HomeWin ? Variant.Filled : Variant.Outlined)"
+                                   Color="Color.Primary" OnClick="() => PickAsync(game.Id, ForcedOutcome.HomeWin)">
+                            <TeamBadge Id="@game.HomeTeam" Team="TeamOf(game.HomeTeam)" />
+                        </MudButton>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            @if (_running)
+            {
+                <MudProgressLinear Color="Color.Primary" Value="_progress" Class="mb-2" />
+            }
+
+            @foreach (var conference in new[] { "AFC", "NFC" })
+            {
+                <MudPaper Class="pa-2 mb-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="px-2">@conference</MudText>
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead>
+                            <tr><th>Team</th><th class="num">Playoffs</th><th class="num">Δ</th><th class="num">Division</th><th class="num">#1 seed</th><th class="num">Avg wins</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var odds in Rows(conference))
+                            {
+                                var delta = odds.MakePlayoffs - (_baseline?.Teams.First(t => t.TeamId == odds.TeamId).MakePlayoffs ?? odds.MakePlayoffs);
+                                <tr>
+                                    <td><TeamBadge Id="@odds.TeamId" Team="TeamOf(odds.TeamId)" /></td>
+                                    <td class="num">@Percent(odds.MakePlayoffs)</td>
+                                    <td class="num @(delta > 0.005 ? "up" : delta < -0.005 ? "down" : "")">@(Math.Abs(delta) < 0.005 ? "–" : $"{delta * 100:+0;-0}")</td>
+                                    <td class="num">@Percent(odds.WinDivision)</td>
+                                    <td class="num">@Percent(odds.FirstSeed)</td>
+                                    <td class="num">@odds.MeanWins.ToString("0.0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private const int Iterations = 2_000;
+    private const int ChunkSize = 250;
+    private const int Seed = 20_260_910;
+
+    [Parameter] public int? Season { get; set; }
+
+    private WhatIfData? _data;
+    private Dictionary<string, TeamInfo> _teams = [];
+    private SimulationResult? _baseline;
+    private SimulationResult? _current;
+    private readonly Dictionary<string, ForcedOutcome> _picks = [];
+    private int[] _weeks = [];
+    private int _week;
+    private bool _running;
+    private double _progress;
+    private string? _error;
+    private CancellationTokenSource? _run;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await Http.GetAsync(Season is { } s ? $"api/what-if/{s}" : "api/what-if");
+        if (!response.IsSuccessStatusCode)
+        {
+            _error = "No simulation data is available for this season yet.";
+            return;
+        }
+
+        _data = await response.Content.ReadFromJsonAsync(ClientJsonContext.Default.WhatIfData);
+        if (_data is null || _data.Input.RemainingGames.Count == 0)
+        {
+            _error = "The regular season is complete, so there is nothing left to pick.";
+            return;
+        }
+
+        _teams = _data.Teams.ToDictionary(t => t.Id);
+        _weeks = [.. _data.Input.RemainingGames.Select(g => g.Week).Distinct().Order()];
+        _week = _weeks[0];
+        _baseline = await SimulateAsync(progressive: false);
+        _current = _baseline;
+    }
+
+    private async Task PickAsync(string gameId, ForcedOutcome outcome)
+    {
+        if (_picks.TryGetValue(gameId, out var existing) && existing == outcome)
+        {
+            _picks.Remove(gameId);
+        }
+        else
+        {
+            _picks[gameId] = outcome;
+        }
+
+        _current = await SimulateAsync(progressive: true) ?? _current;
+    }
+
+    private void Reset()
+    {
+        _picks.Clear();
+        _current = _baseline;
+    }
+
+    /// <summary>
+    /// Runs in chunks so the browser can repaint between them; with <paramref name="progressive"/> the table shows
+    /// the partial result after each chunk, so a pick has a visible effect within a fraction of a second. The same seed is used for every run
+    /// (common random numbers), so differences against the baseline reflect the picks, not noise.
+    /// </summary>
+    private async Task<SimulationResult?> SimulateAsync(bool progressive)
+    {
+        _run?.Cancel();
+        var run = _run = new CancellationTokenSource();
+        var input = _data!.Input with { ForcedOutcomes = new Dictionary<string, ForcedOutcome>(_picks) };
+        var parts = new List<SimulationResult>();
+        _running = true;
+
+        for (var chunk = 0; chunk * ChunkSize < Iterations; chunk++)
+        {
+            parts.Add(SeasonSimulator.Run(input, ChunkSize, Seed + chunk));
+            _progress = 100.0 * parts.Count * ChunkSize / Iterations;
+            if (progressive)
+            {
+                _current = SeasonSimulator.Merge(parts);
+            }
+
+            StateHasChanged();
+            await Task.Delay(1);
+            if (run.IsCancellationRequested)
+            {
+                return null; // a newer pick started its own run, which owns the progress bar
+            }
+        }
+
+        _running = false;
+        return SeasonSimulator.Merge(parts);
+    }
+
+    private IEnumerable<TeamOdds> Rows(string conference) =>
+        (_current?.Teams ?? []).Where(t => TeamOf(t.TeamId)?.Conference == conference).OrderByDescending(t => t.MakePlayoffs).ThenByDescending(t => t.MeanWins);
+
+    private TeamInfo? TeamOf(string id) => _teams.GetValueOrDefault(id);
+
+    private static string Percent(double p) => p switch
+    {
+        >= 0.9995 => "✓",
+        <= 0.0005 => "–",
+        < 0.01 => "<1%",
+        > 0.99 => ">99%",
+        _ => $"{p * 100:0}%",
+    };
+}

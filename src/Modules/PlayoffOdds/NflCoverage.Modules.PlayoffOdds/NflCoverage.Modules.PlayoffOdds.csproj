@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NflCoverage.Modules.PlayoffOdds.Contracts\NflCoverage.Modules.PlayoffOdds.Contracts.csproj" />
+    <ProjectReference Include="..\..\League\NflCoverage.Modules.League.Contracts\NflCoverage.Modules.League.Contracts.csproj" />
+    <ProjectReference Include="..\..\Standings\NflCoverage.Modules.Standings.Contracts\NflCoverage.Modules.Standings.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="NflCoverage.IntegrationTests" />
+  </ItemGroup>
+</Project>
