@@ -1,4 +1,4 @@
-<MudPaper Class="pa-3 stat" Elevation="1">
+<MudPaper Class="@($"pa-3 stat {Class}")" Elevation="1">
     <div class="stat-value">@Value</div>
     <div class="stat-label">@Label</div>
 </MudPaper>
@@ -7,4 +7,6 @@
     [Parameter, EditorRequired] public string Label { get; set; } = "";
 
     [Parameter, EditorRequired] public string Value { get; set; } = "";
+
+    [Parameter] public string? Class { get; set; }
 }

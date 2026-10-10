@@ -33,11 +33,13 @@ internal static class Format
     /// CSS custom properties for a team-colored banner or page: the two team colors and how much of the primary to
     /// keep when darkening it toward black so white text on it reaches 5:1. Light primaries such as the Saints' gold
     /// need a deeper shade; mid-tones such as the Dolphins' teal cannot carry readable text of either color undarkened.
+    /// A <paramref name="prefix"/> other than "team" names the properties for one of several teams on a page
+    /// (head-to-head uses "a" and "b").
     /// </summary>
-    public static string TeamColors(string primary, string secondary)
+    public static string TeamColors(string primary, string secondary, string prefix = "team")
     {
         var depth = BannerDepth(primary);
-        return $"--team-color:{primary};--team-color-2:{secondary};--team-depth:{depth}%;--team-depth-end:{Math.Min(depth, 50)}%";
+        return $"--{prefix}-color:{primary};--{prefix}-color-2:{secondary};--{prefix}-depth:{depth}%;--{prefix}-depth-end:{Math.Min(depth, 50)}%";
     }
 
     /// <summary>

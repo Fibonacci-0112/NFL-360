@@ -50,6 +50,10 @@ public partial class TeamColorsTests
         Percent(style, "team-depth-end").Should().Be(Math.Min(depth, 50), "the banner gradient never lightens toward its end");
     }
 
+    [Fact]
+    public void Prefix_names_the_properties_for_one_of_several_teams() =>
+        Format.TeamColors("#E31837", "#FFB612", "a").Should().Be("--a-color:#E31837;--a-color-2:#FFB612;--a-depth:88%;--a-depth-end:50%");
+
     [Theory]
     [InlineData("")]
     [InlineData("red")]

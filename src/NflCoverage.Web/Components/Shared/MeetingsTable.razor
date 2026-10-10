@@ -5,7 +5,8 @@
         <tbody>
             @foreach (var m in Meetings)
             {
-                <tr>
+                @* Striped in the winner's color; ties get a neutral stripe. *@
+                <tr class="season-row" style="@($"--row-team:{(m.Winner is { } w ? Teams.GetValueOrDefault(w)?.PrimaryColor ?? "#888888" : "#9e9e9e")}")">
                     <td>@m.Season</td>
                     <td>@(m.GameType == GameTypes.Regular ? $"Week {m.Week}" : m.GameType)</td>
                     <td>

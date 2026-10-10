@@ -229,6 +229,27 @@ public class StatsAndHistoryTests(NflAppFixture app)
     }
 
     [Fact]
+    public async Task Franchise_page_is_accented_in_team_colors_with_a_trophy_for_each_title()
+    {
+        var html = await _client.GetStringAsync("/history/teams/KC", Ct);
+
+        html.Should().Contain("--team-color:#E31837;--team-color-2:#FFB612", "the page takes the Chiefs' colors");
+        html.Should().Contain("trophy gold\" href=\"/teams/KC/2023\"", "the 2023 Super Bowl win sits on the trophy shelf");
+        html.Should().Contain("--row-team:#D4AF37", "the championship season is striped gold");
+    }
+
+    [Fact]
+    public async Task Head_to_head_page_splits_the_banner_between_both_teams_colors()
+    {
+        var html = await _client.GetStringAsync("/history/head-to-head?a=KC&b=LV", Ct);
+
+        html.Should().Contain("--a-color:#E31837;--a-color-2:#FFB612", "the left half takes the Chiefs' colors");
+        html.Should().Contain("--b-color:#000000;--b-color-2:#A5ACAF", "the right half takes the Raiders' colors");
+        html.Should().Contain("class=\"h2h-bar\"", "the series bar shows each side's share of the wins");
+        html.Should().MatchRegex("--row-team:(#E31837|#000000)", "meeting rows are striped in the winner's color");
+    }
+
+    [Fact]
     public async Task Leaders_page_lists_the_leader_and_pages_through_the_url()
     {
         var first = await _client.GetStringAsync("/stats/players/2023", Ct);
