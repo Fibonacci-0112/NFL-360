@@ -1,0 +1,123 @@
+@page "/standings/{Season:int?}"
+@inject ILeagueQueries League
+@inject IStandingsQueries StandingsQueries
+@attribute [StreamRendering]
+
+<PageTitle>@(_standings is null ? "Standings" : $"{_standings.Season} NFL standings")</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">@(_standings?.Season.ToString() ?? "") Standings</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_standings is null)
+{
+    <MudAlert Severity="Severity.Info">
+        Standings are available for @IStandingsQueries.FirstSupportedSeason and later seasons once schedule data has been imported.
+    </MudAlert>
+}
+else
+{
+    <div class="week-picker mb-4">
+        <span class="mr-2">Through week:</span>
+        @for (var w = 1; w <= _standings.LastPlayedWeek; w++)
+        {
+            var week = w;
+            <MudButton Size="Size.Small" Href="@($"/standings/{_standings.Season}?week={week}")"
+                       Variant="@(week == _standings.ThroughWeek ? Variant.Filled : Variant.Text)" Color="Color.Primary">@week</MudButton>
+        }
+    </div>
+
+    <MudGrid>
+        @foreach (var conference in new[] { "AFC", "NFC" })
+        {
+            <MudItem xs="12" lg="6">
+                <MudText Typo="Typo.h5" Class="mb-2">@conference</MudText>
+
+                <MudPaper Class="pa-2 mb-4" Elevation="1">
+                    <MudText Typo="Typo.subtitle1" Class="px-2">Playoff seeding</MudText>
+                    <MudSimpleTable Dense="true">
+                        <thead><tr><th>#</th><th>Team</th><th class="num">W-L-T</th><th class="num">Pct</th><th class="num">Div</th><th class="num">Conf</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in _standings.Teams.Where(t => t.Conference == conference).OrderBy(t => t.ConferenceRank))
+                            {
+                                <tr class="@(row.Seed is null ? "out" : row.Seed <= 4 ? "division-winner" : "wild-card") @(row.Seed == PlayoffCount ? "cut-line" : "")">
+                                    <td>@(row.Seed?.ToString() ?? "")</td>
+                                    <td><a href="/teams/@row.TeamId"><TeamBadge Id="@row.TeamId" Team="Team(row.TeamId)" /></a></td>
+                                    <td class="num">@Format.Record(row.Wins, row.Losses, row.Ties)</td>
+                                    <td class="num">@Format.WinPct(row.WinPct)</td>
+                                    <td class="num">@row.DivisionRecord</td>
+                                    <td class="num">@row.ConferenceRecord</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                @foreach (var division in _standings.Teams.Where(t => t.Conference == conference).Select(t => t.Division).Distinct().Order())
+                {
+                    <MudPaper Class="pa-2 mb-4" Elevation="1">
+                        <MudText Typo="Typo.subtitle1" Class="px-2">@division</MudText>
+                        <MudSimpleTable Dense="true">
+                            <thead><tr><th>Team</th><th class="num">W</th><th class="num">L</th><th class="num">T</th><th class="num">Pct</th><th class="num">PF</th><th class="num">PA</th><th class="num">Diff</th><th class="num">Div</th><th class="num">Conf</th></tr></thead>
+                            <tbody>
+                                @foreach (var row in _standings.Teams.Where(t => t.Division == division).OrderBy(t => t.DivisionRank))
+                                {
+                                    <tr>
+                                        <td><a href="/teams/@row.TeamId"><TeamBadge Id="@row.TeamId" Team="Team(row.TeamId)" /></a>@if (row.Seed is { } s) {<sup class="seed">@s</sup>}</td>
+                                        <td class="num">@row.Wins</td>
+                                        <td class="num">@row.Losses</td>
+                                        <td class="num">@row.Ties</td>
+                                        <td class="num">@Format.WinPct(row.WinPct)</td>
+                                        <td class="num">@row.PointsFor</td>
+                                        <td class="num">@row.PointsAgainst</td>
+                                        <td class="num">@((row.PointsFor - row.PointsAgainst).ToString("+0;-0;0"))</td>
+                                        <td class="num">@row.DivisionRecord</td>
+                                        <td class="num">@row.ConferenceRecord</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudPaper>
+                }
+            </MudItem>
+        }
+    </MudGrid>
+
+    @if (_standings.Tiebreaks.Count > 0)
+    {
+        <details class="tiebreaks">
+            <summary>How ties were broken (@_standings.Tiebreaks.Count)</summary>
+            <ul>
+                @foreach (var note in _standings.Tiebreaks)
+                {
+                    <li><strong>@note.Context:</strong> @string.Join(", ", note.TiedTeams) → <strong>@note.Winner</strong> (@note.DecidedBy)</li>
+                }
+            </ul>
+        </details>
+    }
+}
+
+@code {
+    [Parameter] public int? Season { get; set; }
+
+    [SupplyParameterFromQuery] public int? Week { get; set; }
+
+    private SeasonStandings? _standings;
+    private Dictionary<string, TeamInfo> _teams = [];
+    private bool _loading = true;
+
+    private int PlayoffCount => _standings?.Season >= 2020 ? 7 : 6;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        var season = Season ?? (await League.GetSeasonsAsync()).FirstOrDefault();
+        _teams = Format.Directory(await League.GetTeamsAsync());
+        _standings = await StandingsQueries.GetAsync(season, Week);
+        _loading = false;
+    }
+
+    private TeamInfo? Team(string id) => _teams.GetValueOrDefault(id);
+}

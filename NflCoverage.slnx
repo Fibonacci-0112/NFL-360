@@ -1,0 +1,39 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NflCoverage.AppHost/NflCoverage.AppHost.csproj" />
+    <Project Path="src/NflCoverage.Rules/NflCoverage.Rules.csproj" />
+    <Project Path="src/NflCoverage.ServiceDefaults/NflCoverage.ServiceDefaults.csproj" />
+    <Project Path="src/NflCoverage.SharedKernel/NflCoverage.SharedKernel.csproj" />
+    <Project Path="src/NflCoverage.Simulation/NflCoverage.Simulation.csproj" />
+    <Project Path="src/NflCoverage.Web.Client/NflCoverage.Web.Client.csproj" />
+    <Project Path="src/NflCoverage.Web/NflCoverage.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/League/">
+    <Project Path="src/Modules/League/NflCoverage.Modules.League.Contracts/NflCoverage.Modules.League.Contracts.csproj" />
+    <Project Path="src/Modules/League/NflCoverage.Modules.League/NflCoverage.Modules.League.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Standings/">
+    <Project Path="src/Modules/Standings/NflCoverage.Modules.Standings.Contracts/NflCoverage.Modules.Standings.Contracts.csproj" />
+    <Project Path="src/Modules/Standings/NflCoverage.Modules.Standings/NflCoverage.Modules.Standings.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/PlayoffOdds/">
+    <Project Path="src/Modules/PlayoffOdds/NflCoverage.Modules.PlayoffOdds.Contracts/NflCoverage.Modules.PlayoffOdds.Contracts.csproj" />
+    <Project Path="src/Modules/PlayoffOdds/NflCoverage.Modules.PlayoffOdds/NflCoverage.Modules.PlayoffOdds.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Ingestion/">
+    <Project Path="src/Modules/Ingestion/NflCoverage.Modules.Ingestion/NflCoverage.Modules.Ingestion.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NflCoverage.ArchitectureTests/NflCoverage.ArchitectureTests.csproj" />
+    <Project Path="tests/NflCoverage.IntegrationTests/NflCoverage.IntegrationTests.csproj" />
+    <Project Path="tests/NflCoverage.Rules.Tests/NflCoverage.Rules.Tests.csproj" />
+    <Project Path="tests/NflCoverage.Simulation.Tests/NflCoverage.Simulation.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="global.json" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path=".editorconfig" />
+    <File Path="README.md" />
+  </Folder>
+</Solution>

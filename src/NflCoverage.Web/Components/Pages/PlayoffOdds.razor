@@ -1,0 +1,113 @@
+@page "/playoffs/odds/{Season:int?}"
+@using System.Text.Json
+@inject ILeagueQueries League
+@inject IPlayoffOddsQueries Odds
+@attribute [StreamRendering]
+
+<PageTitle>Playoff odds</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+    <MudText Typo="Typo.h4">@(_latest?.Season.ToString() ?? "") Playoff odds</MudText>
+    <MudButton Href="@($"/playoffs/what-if/{_season}")" Variant="Variant.Filled" Color="Color.Secondary">Try what-if scenarios</MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_latest is null)
+{
+    <MudAlert Severity="Severity.Info">Playoff odds for this season have not been calculated yet. They are computed in the background after each game day.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.body2" Class="mb-4">
+        Through week @_latest.ThroughWeek · @_latest.Iterations.ToString("N0") simulations · updated @_latest.ComputedAt.ToString("u")
+        · Elo ratings, NFL tiebreakers applied in every simulation.
+    </MudText>
+
+    <MudGrid>
+        @foreach (var conference in new[] { "AFC", "NFC" })
+        {
+            <MudItem xs="12" lg="6">
+                <MudPaper Class="pa-2 mb-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="px-2">@conference</MudText>
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>Team</th><th class="num">Avg W</th><th class="num">Playoffs</th><th class="num">Division</th><th class="num">#1 seed</th><th class="num">Conf.</th><th class="num">Super Bowl</th></tr></thead>
+                        <tbody>
+                            @foreach (var odds in _latest.Teams.Where(t => Team(t.TeamId)?.Conference == conference).OrderByDescending(t => t.MakePlayoffs).ThenByDescending(t => t.MeanWins))
+                            {
+                                <tr>
+                                    <td><a href="/teams/@odds.TeamId"><TeamBadge Id="@odds.TeamId" Team="Team(odds.TeamId)" /></a></td>
+                                    <td class="num">@odds.MeanWins.ToString("0.0")</td>
+                                    <td class="num heat" style="--p:@Heat(odds.MakePlayoffs)">@Format.Percent(odds.MakePlayoffs)</td>
+                                    <td class="num">@Format.Percent(odds.WinDivision)</td>
+                                    <td class="num">@Format.Percent(odds.FirstSeed)</td>
+                                    <td class="num">@Format.Percent(odds.WinConference)</td>
+                                    <td class="num">@Format.Percent(odds.WinSuperBowl)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                @if (_history.Count > 1)
+                {
+                    <MudPaper Class="pa-2 mb-4" Elevation="1">
+                        <MudText Typo="Typo.subtitle1" Class="px-2">@conference playoff odds by week</MudText>
+                        <EChart OptionsJson="@ChartOptions(conference)" Height="380px" Label="@($"{conference} playoff odds by week")" />
+                    </MudPaper>
+                }
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int? Season { get; set; }
+
+    private int _season;
+    private PlayoffOddsSnapshot? _latest;
+    private IReadOnlyList<PlayoffOddsSnapshot> _history = [];
+    private Dictionary<string, TeamInfo> _teams = [];
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _season = Season ?? (await League.GetSeasonsAsync()).FirstOrDefault();
+        _teams = Format.Directory(await League.GetTeamsAsync());
+        _history = await Odds.GetHistoryAsync(_season);
+        _latest = _history.Count > 0 ? _history[^1] : null;
+        _loading = false;
+    }
+
+    private TeamInfo? Team(string id) => _teams.GetValueOrDefault(id);
+
+    private static string Heat(double p) => p.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>One line per team; clicking legend entries in the chart toggles teams (handled by ECharts itself).</summary>
+    private string ChartOptions(string conference)
+    {
+        var teams = _latest!.Teams.Where(t => Team(t.TeamId)?.Conference == conference)
+            .OrderByDescending(t => t.MakePlayoffs).Select(t => t.TeamId).ToList();
+        var options = new
+        {
+            tooltip = new { trigger = "axis", valueFormatter = "percent" },
+            legend = new { type = "scroll", bottom = 0, selected = teams.Skip(8).ToDictionary(t => t, _ => false) },
+            grid = new { left = 40, right = 16, top = 16, bottom = 56 },
+            xAxis = new { type = "category", name = "Week", data = _history.Select(h => h.ThroughWeek.ToString(System.Globalization.CultureInfo.InvariantCulture)) },
+            yAxis = new { type = "value", min = 0, max = 100, axisLabel = new { formatter = "{value}%" } },
+            series = teams.Select(id => new
+            {
+                name = id,
+                type = "line",
+                smooth = true,
+                showSymbol = false,
+                color = Team(id)?.PrimaryColor,
+                data = _history.Select(h => Math.Round((h.Teams.FirstOrDefault(t => t.TeamId == id)?.MakePlayoffs ?? 0) * 100, 1)),
+            }),
+        };
+        return JsonSerializer.Serialize(options);
+    }
+}

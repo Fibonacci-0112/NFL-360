@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\NflCoverage.Simulation\NflCoverage.Simulation.csproj" />
+  </ItemGroup>
+</Project>

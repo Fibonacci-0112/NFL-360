@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # .NET 11 is in release-candidate; global.json accepts any 11.0.1xx SDK from RC1 on.
+      - name: Set up .NET 11
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
+      - name: Restore
+        run: dotnet restore NflCoverage.slnx
+
+      - name: Build
+        run: dotnet build NflCoverage.slnx --no-restore --configuration Release
+
+      # Integration tests start PostgreSQL with Testcontainers (Docker is available on GitHub-hosted runners).
+      - name: Test
+        run: dotnet test --solution NflCoverage.slnx --no-build --configuration Release

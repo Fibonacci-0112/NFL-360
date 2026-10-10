@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\League\NflCoverage.Modules.League.Contracts\NflCoverage.Modules.League.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="Sep" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="NflCoverage.IntegrationTests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,91 @@
+@implements IAsyncDisposable
+@inject IServiceScopeFactory Scopes
+
+@*
+    Interactive Server island: the circuit refreshes scores from the League module every 30 seconds, which is
+    fed by the ESPN live poller. No client-side polling or SignalR plumbing of our own is needed.
+*@
+<MudPaper Class="pa-3" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.h6">@_title</MudText>
+        @if (_games.Any(g => g.Status == GameStatus.InProgress))
+        {
+            <MudChip T="string" Color="Color.Error" Size="Size.Small">LIVE</MudChip>
+        }
+    </MudStack>
+    @if (_games.Count == 0)
+    {
+        <MudText Typo="Typo.body2">No games scheduled.</MudText>
+    }
+    <div class="scoreboard">
+        @foreach (var game in _games)
+        {
+            <div class="score-card @(game.Status == GameStatus.InProgress ? "live" : "")">
+                <div class="score-line"><TeamBadge Id="@game.AwayTeam" Team="Team(game.AwayTeam)" /><span>@game.AwayScore</span></div>
+                <div class="score-line"><TeamBadge Id="@game.HomeTeam" Team="Team(game.HomeTeam)" /><span>@game.HomeScore</span></div>
+                <div class="score-status">@(game.Status switch { GameStatus.Final => "Final", GameStatus.InProgress => game.StatusDetail ?? "Live", _ => Format.Kickoff(game.Kickoff) })</div>
+            </div>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    private List<GameDto> _games = [];
+    private Dictionary<string, TeamInfo> _teams = [];
+    private string _title = "Scoreboard";
+    private PeriodicTimer? _timer;
+    private Task? _loop;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        if (RendererInfo.IsInteractive)
+        {
+            _timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+            _loop = RefreshLoopAsync(_timer);
+        }
+    }
+
+    private async Task RefreshLoopAsync(PeriodicTimer timer)
+    {
+        while (await timer.WaitForNextTickAsync())
+        {
+            await RefreshAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        await using var scope = Scopes.CreateAsyncScope();
+        var league = scope.ServiceProvider.GetRequiredService<ILeagueQueries>();
+        var seasons = await league.GetSeasonsAsync();
+        if (seasons.Count == 0)
+        {
+            return;
+        }
+
+        _teams = Format.Directory(await league.GetTeamsAsync());
+        var games = await league.GetGamesAsync(seasons[0]);
+        // The "current" slate is the earliest round that still has unfinished games, else the last one played.
+        var current = games.Where(g => g.Status != GameStatus.Final).OrderBy(g => g.Kickoff).FirstOrDefault() ?? games.LastOrDefault();
+        if (current is null)
+        {
+            return;
+        }
+
+        _games = [.. games.Where(g => g.GameType == current.GameType && g.Week == current.Week).OrderBy(g => g.Kickoff)];
+        _title = current.GameType == GameTypes.Regular ? $"{current.Season} · Week {current.Week}" : $"{current.Season} · {current.GameType}";
+    }
+
+    private TeamInfo? Team(string id) => _teams.GetValueOrDefault(id);
+
+    public async ValueTask DisposeAsync()
+    {
+        _timer?.Dispose();
+        if (_loop is not null)
+        {
+            await _loop;
+        }
+    }
+}

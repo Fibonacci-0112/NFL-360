@@ -1,0 +1,109 @@
+@page "/teams/{Id}/{Season:int?}"
+@inject ILeagueQueries League
+@inject IStandingsQueries StandingsQueries
+@inject IPlayoffOddsQueries Odds
+@attribute [StreamRendering]
+
+<PageTitle>@(_team?.Name ?? Id)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_team is null)
+{
+    <MudAlert Severity="Severity.Warning">Unknown team “@Id”.</MudAlert>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4 team-header" Style="@($"--team-color:{_team.PrimaryColor}")">
+        @if (_team.LogoUrl is not null)
+        {
+            <img src="@_team.LogoUrl" alt="" width="72" height="72" />
+        }
+        <div>
+            <MudText Typo="Typo.h4">@_team.Name</MudText>
+            <MudText Typo="Typo.subtitle1">
+                @_season · @_team.Division
+                @if (_standing is not null)
+                {
+                    <span> · @Format.Record(_standing.Wins, _standing.Losses, _standing.Ties), @Ordinal(_standing.DivisionRank) in division</span>
+                }
+            </MudText>
+        </div>
+    </MudStack>
+
+    @if (_odds is not null)
+    {
+        <MudGrid Class="mb-4">
+            <MudItem xs="6" sm="3"><Stat Label="Make playoffs" Value="@Format.Percent(_odds.MakePlayoffs)" /></MudItem>
+            <MudItem xs="6" sm="3"><Stat Label="Win division" Value="@Format.Percent(_odds.WinDivision)" /></MudItem>
+            <MudItem xs="6" sm="3"><Stat Label="#1 seed" Value="@Format.Percent(_odds.FirstSeed)" /></MudItem>
+            <MudItem xs="6" sm="3"><Stat Label="Projected wins" Value="@_odds.MeanWins.ToString("0.0")" /></MudItem>
+        </MudGrid>
+    }
+
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudText Typo="Typo.h6" Class="px-2">Schedule</MudText>
+        <MudSimpleTable Dense="true">
+            <thead><tr><th>Week</th><th>Date</th><th>Opponent</th><th class="num">Result</th></tr></thead>
+            <tbody>
+                @foreach (var game in _games)
+                {
+                    var home = game.HomeTeam == Id;
+                    var opponent = home ? game.AwayTeam : game.HomeTeam;
+                    <tr>
+                        <td>@(game.GameType == GameTypes.Regular ? game.Week.ToString() : game.GameType)</td>
+                        <td>@Format.Kickoff(game.Kickoff)</td>
+                        <td>@(home ? "vs" : "@") <a href="/teams/@opponent/@_season"><TeamBadge Id="@opponent" Team="TeamInfo(opponent)" /></a></td>
+                        <td class="num">@Result(game, home)</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    [Parameter] public int? Season { get; set; }
+
+    private int _season;
+    private TeamDto? _team;
+    private Dictionary<string, TeamInfo> _teams = [];
+    private List<GameDto> _games = [];
+    private StandingRow? _standing;
+    private TeamPlayoffOdds? _odds;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        Id = Id.ToUpperInvariant();
+        _season = Season ?? (await League.GetSeasonsAsync()).FirstOrDefault();
+        var teams = await League.GetTeamsAsync();
+        _teams = Format.Directory(teams);
+        _team = teams.FirstOrDefault(t => t.Id == Id);
+        _games = [.. (await League.GetGamesAsync(_season)).Where(g => g.HomeTeam == Id || g.AwayTeam == Id)];
+        _standing = (await StandingsQueries.GetAsync(_season))?.Teams.FirstOrDefault(t => t.TeamId == Id);
+        _odds = (await Odds.GetLatestAsync(_season))?.Teams.FirstOrDefault(t => t.TeamId == Id);
+        _loading = false;
+    }
+
+    private TeamInfo? TeamInfo(string id) => _teams.GetValueOrDefault(id);
+
+    private static string Result(GameDto game, bool home)
+    {
+        if (game.HomeScore is not { } h || game.AwayScore is not { } a)
+        {
+            return "";
+        }
+
+        var (us, them) = home ? (h, a) : (a, h);
+        var prefix = game.Status != GameStatus.Final ? (game.StatusDetail ?? "Live") + " " : us > them ? "W " : us < them ? "L " : "T ";
+        return $"{prefix}{us}-{them}";
+    }
+
+    private static string Ordinal(int n) => n switch { 1 => "1st", 2 => "2nd", 3 => "3rd", _ => $"{n}th" };
+}

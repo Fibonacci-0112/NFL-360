@@ -1,0 +1,15 @@
+@*
+    Renders an Apache ECharts chart through the <nfl-echart> custom element (wwwroot/js/nfl-echart.js).
+    Works in static SSR, survives enhanced navigation, and updates in interactive modes because the element
+    re-renders whenever its options attribute changes.
+*@
+<nfl-echart options="@OptionsJson" style="display:block;width:100%;height:@Height" role="img" aria-label="@Label"></nfl-echart>
+
+@code {
+    /// <summary>ECharts option object, already serialized to JSON.</summary>
+    [Parameter, EditorRequired] public string OptionsJson { get; set; } = "{}";
+
+    [Parameter] public string Height { get; set; } = "360px";
+
+    [Parameter] public string? Label { get; set; }
+}

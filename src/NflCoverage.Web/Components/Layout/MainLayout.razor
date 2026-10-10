@@ -1,0 +1,34 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="Theme" />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudLink Href="/" Color="Color.Inherit" Underline="Underline.None" Class="brand">NFL 360</MudLink>
+        <MudSpacer />
+        <nav class="top-nav">
+            <MudButton Href="/standings" Color="Color.Inherit">Standings</MudButton>
+            <MudButton Href="/playoffs/odds" Color="Color.Inherit">Playoff odds</MudButton>
+            <MudButton Href="/playoffs/what-if" Color="Color.Inherit">What-if</MudButton>
+        </nav>
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private static readonly MudTheme Theme = new()
+    {
+        PaletteLight = new PaletteLight { Primary = "#013369", Secondary = "#D50A0A", AppbarBackground = "#013369" },
+        PaletteDark = new PaletteDark { Primary = "#4A8FE7", Secondary = "#FF5252" },
+    };
+}

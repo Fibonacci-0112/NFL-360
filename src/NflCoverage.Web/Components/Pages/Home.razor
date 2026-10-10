@@ -1,0 +1,41 @@
+@page "/"
+
+<PageTitle>NFL 360 Coverage</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">NFL 360 Coverage</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-6">
+    Standings with every official tiebreaker applied, playoff probabilities from thousands of simulated seasons,
+    and a what-if simulator that runs in your browser.
+</MudText>
+
+<LiveScoreboard @rendermode="InteractiveServer" />
+
+<MudGrid Class="mt-6">
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Standings</MudText>
+                <MudText Typo="Typo.body2">Division and conference tables with seeds and the tiebreak that decided each tie.</MudText>
+            </MudCardContent>
+            <MudCardActions><MudButton Href="/standings" Color="Color.Primary">View standings</MudButton></MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Playoff odds</MudText>
+                <MudText Typo="Typo.body2">Chances to make the playoffs, win the division, earn the bye and win it all — and how they moved week to week.</MudText>
+            </MudCardContent>
+            <MudCardActions><MudButton Href="/playoffs/odds" Color="Color.Primary">View odds</MudButton></MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.h6">What-if simulator</MudText>
+                <MudText Typo="Typo.body2">Pick winners of upcoming games and watch the playoff picture change instantly.</MudText>
+            </MudCardContent>
+            <MudCardActions><MudButton Href="/playoffs/what-if" Color="Color.Primary">Open simulator</MudButton></MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
