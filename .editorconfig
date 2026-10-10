@@ -26,7 +26,13 @@ dotnet_style_prefer_conditional_expression_over_return = true:silent
 dotnet_analyzer_diagnostic.category-Style.severity = suggestion
 dotnet_diagnostic.IDE0161.severity = warning
 dotnet_diagnostic.IDE0040.severity = warning
+dotnet_diagnostic.IDE0055.severity = suggestion
+dotnet_diagnostic.IDE0290.severity = suggestion
 
 [*.cs]
 # Static-ness is a design choice in this codebase (e.g. private helpers near instance state).
 dotnet_diagnostic.CA1822.severity = suggestion
+
+[**/Migrations/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

@@ -84,22 +84,13 @@ public static class StandingsCalculator
     }
 
     /// <summary>
-    /// Allocation-light path for simulations: returns the seeded team indices per conference
+    /// Fast path for simulations: returns the seeded team indices per conference
     /// (<c>result[conference][seed - 1]</c>) without building display models or tiebreak notes.
     /// </summary>
-    public static int[][] ComputeSeeds(SeasonTable table, int playoffTeamsPerConference, ICoinToss coinToss)
-    {
-        var league = table.League;
-        var tiebreaker = new Tiebreaker(table, coinToss, notes: null);
-        tiebreaker.RankDivisions();
-        return
-        [
-            .. league.ConferenceMembers.Select(members =>
-                OrderConference(tiebreaker, league, members, playoffTeamsPerConference, rankEveryone: false).ToArray()),
-        ];
-    }
+    public static int[][] ComputeSeeds(SeasonTable table, int playoffTeamsPerConference, ICoinToss coinToss) =>
+        new PlayoffSeeder(table, playoffTeamsPerConference, coinToss).Compute();
 
-    private static List<int> OrderConference(Tiebreaker tiebreaker, League league, int[] members, int playoffTeams, bool rankEveryone)
+    internal static List<int> OrderConference(Tiebreaker tiebreaker, League league, int[] members, int playoffTeams, bool rankEveryone)
     {
         var conferenceName = league.Teams[members[0]].Conference.ToString().ToUpperInvariant();
         var divisionWinners = members.Where(m => tiebreaker.DivisionRanks[m] == 1).ToList();
@@ -113,4 +104,36 @@ public static class StandingsCalculator
 
     private static string FormatRecord((int Wins, int Losses, int Ties) r) =>
         r.Ties == 0 ? $"{r.Wins}-{r.Losses}" : $"{r.Wins}-{r.Losses}-{r.Ties}";
+}
+
+/// <summary>
+/// Reusable seeding over a mutable <see cref="SeasonTable"/>: create once per simulation run and call
+/// <see cref="Compute"/> after each simulated season to avoid re-allocating tiebreaker state.
+/// </summary>
+public sealed class PlayoffSeeder
+{
+    private readonly SeasonTable _table;
+    private readonly int _playoffTeams;
+    private readonly Tiebreaker _tiebreaker;
+
+    public PlayoffSeeder(SeasonTable table, int playoffTeamsPerConference, ICoinToss coinToss)
+    {
+        _table = table;
+        _playoffTeams = playoffTeamsPerConference;
+        _tiebreaker = new Tiebreaker(table, coinToss, notes: null);
+    }
+
+    /// <returns>Seeded team indices per conference: <c>result[conference][seed - 1]</c>.</returns>
+    public int[][] Compute()
+    {
+        _tiebreaker.RankDivisions();
+        var members = _table.League.ConferenceMembers;
+        var seeds = new int[members.Length][];
+        for (var c = 0; c < members.Length; c++)
+        {
+            seeds[c] = [.. StandingsCalculator.OrderConference(_tiebreaker, _table.League, members[c], _playoffTeams, rankEveryone: false)];
+        }
+
+        return seeds;
+    }
 }

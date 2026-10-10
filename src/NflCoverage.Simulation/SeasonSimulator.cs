@@ -26,6 +26,7 @@ public static class SeasonSimulator
 
         var baseTable = SeasonTable.From(league, input.CompletedGames);
         var table = new SeasonTable(league);
+        var seeder = new PlayoffSeeder(table, playoffTeams, coinToss);
         var tally = new Tally(league.Count, playoffTeams);
 
         for (var iteration = 0; iteration < iterations; iteration++)
@@ -33,18 +34,21 @@ public static class SeasonSimulator
             table.CopyFrom(baseTable);
             foreach (var game in games)
             {
+                // Always draw, even for forced games, so every other game sees the same random stream
+                // (common random numbers): what-if differences then reflect the picks rather than noise.
+                var sampled = SampleMargin(random, game.ExpectedMargin);
                 var margin = game.Forced switch
                 {
-                    ForcedOutcome.HomeWin => 1 + random.Next(14),
-                    ForcedOutcome.AwayWin => -1 - random.Next(14),
+                    ForcedOutcome.HomeWin => Math.Abs(sampled),
+                    ForcedOutcome.AwayWin => -Math.Abs(sampled),
                     ForcedOutcome.Tie => 0,
-                    _ => SampleMargin(random, game.ExpectedMargin),
+                    _ => sampled,
                 };
                 var loserScore = 10 + random.Next(18);
                 table.Add(game.Home, game.Away, loserScore + Math.Max(margin, 0), loserScore + Math.Max(-margin, 0));
             }
 
-            var seeds = StandingsCalculator.ComputeSeeds(table, playoffTeams, coinToss);
+            var seeds = seeder.Compute();
             tally.Record(table, seeds);
             SimulatePlayoffs(seeds, ratings, random, tally);
         }

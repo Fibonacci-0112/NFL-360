@@ -9,24 +9,48 @@ namespace NflCoverage.Rules;
 /// "Best net touchdowns in all games" is not modeled because game-level scoring detail is not part of
 /// <see cref="GameScore"/>; a tie that reaches that step falls through to the coin toss.
 /// </remarks>
-internal sealed class Tiebreaker(SeasonTable table, ICoinToss coinToss, List<TiebreakNote>? notes)
+internal sealed class Tiebreaker
 {
     private const double Epsilon = 1e-12;
 
-    private readonly League _league = table.League;
+    private readonly SeasonTable table;
+    private readonly ICoinToss coinToss;
+    private readonly List<TiebreakNote>? notes;
+    private readonly League _league;
+    private readonly double[] _winPct;
+    private readonly (string Name, Step Apply)[] _divisionSteps;
+    private readonly (string Name, Step Apply)[] _wildCardSteps;
+    private readonly Comparison<int> _byWinPctDescending;
+
+    public Tiebreaker(SeasonTable table, ICoinToss coinToss, List<TiebreakNote>? notes)
+    {
+        this.table = table;
+        this.coinToss = coinToss;
+        this.notes = notes;
+        _league = table.League;
+        _winPct = new double[_league.Count];
+        DivisionRanks = new int[_league.Count];
+        _divisionSteps = DivisionSteps();
+        _wildCardSteps = WildCardSteps();
+        _byWinPctDescending = (a, b) => _winPct[b].CompareTo(_winPct[a]);
+    }
 
     private delegate double[]? Step(List<int> clubs);
 
     /// <summary>1-based finishing position of every club within its division.</summary>
-    public int[] DivisionRanks { get; } = new int[table.League.Count];
+    public int[] DivisionRanks { get; }
 
+    /// <summary>Re-reads the table and ranks every division. Call again after the table changes (instances are reusable).</summary>
     public void RankDivisions()
     {
+        for (var i = 0; i < _winPct.Length; i++)
+        {
+            _winPct[i] = table.WinPct(i);
+        }
+
         for (var d = 0; d < _league.DivisionMembers.Length; d++)
         {
-            var order = OrderByWinPct(
-                [.. _league.DivisionMembers[d]],
-                tied => SelectBest(tied, DivisionSteps(), _league.DivisionNames[d]));
+            var order = OrderByWinPct([.. _league.DivisionMembers[d]], wildCard: false, _league.DivisionNames[d], int.MaxValue);
             for (var rank = 0; rank < order.Count; rank++)
             {
                 DivisionRanks[order[rank]] = rank + 1;
@@ -37,19 +61,42 @@ internal sealed class Tiebreaker(SeasonTable table, ICoinToss coinToss, List<Tie
     /// <summary>Orders clubs by win percentage, breaking ties among clubs from different divisions with the wild-card procedure.</summary>
     /// <remarks>Clubs are picked one at a time and the tied group is re-formed after every pick, so at most <paramref name="limit"/> picks are made.</remarks>
     public List<int> OrderAcrossDivisions(List<int> clubs, string context, int limit = int.MaxValue) =>
-        OrderByWinPct(clubs, tied => SelectBestWildCard(tied, context), limit);
+        OrderByWinPct(clubs, wildCard: true, context, limit);
 
-    private List<int> OrderByWinPct(List<int> clubs, Func<List<int>, int> selectBest, int limit = int.MaxValue)
+    private List<int> OrderByWinPct(List<int> clubs, bool wildCard, string context, int limit)
     {
-        var remaining = new List<int>(clubs);
-        var order = new List<int>(clubs.Count);
-        while (remaining.Count > 0 && order.Count < limit)
+        var sorted = new List<int>(clubs);
+        sorted.Sort(_byWinPctDescending);
+        var order = new List<int>(Math.Min(limit, sorted.Count));
+
+        var start = 0;
+        while (start < sorted.Count && order.Count < limit)
         {
-            var best = remaining.Max(table.WinPct);
-            var tied = remaining.Where(t => Math.Abs(table.WinPct(t) - best) < Epsilon).ToList();
-            var winner = tied.Count == 1 ? tied[0] : selectBest(tied);
-            order.Add(winner);
-            remaining.Remove(winner);
+            var end = start + 1;
+            while (end < sorted.Count && Math.Abs(_winPct[sorted[end]] - _winPct[sorted[start]]) < Epsilon)
+            {
+                end++;
+            }
+
+            if (end - start == 1)
+            {
+                order.Add(sorted[start]);
+            }
+            else
+            {
+                // Break the tie for the top spot, then re-form the group from the clubs that remain tied.
+                var tied = sorted.GetRange(start, end - start);
+                while (tied.Count > 0 && order.Count < limit)
+                {
+                    var winner = tied.Count == 1 ? tied[0]
+                        : wildCard ? SelectBestWildCard(tied, context)
+                        : SelectBest(tied, _divisionSteps, context);
+                    order.Add(winner);
+                    tied.Remove(winner);
+                }
+            }
+
+            start = end;
         }
 
         return order;
@@ -60,7 +107,7 @@ internal sealed class Tiebreaker(SeasonTable table, ICoinToss coinToss, List<Tie
         var divisions = clubs.Select(c => _league.DivisionOf[c]).Distinct().Count();
         if (divisions == 1)
         {
-            return SelectBest(clubs, DivisionSteps(), _league.DivisionNames[_league.DivisionOf[clubs[0]]]);
+            return SelectBest(clubs, _divisionSteps, _league.DivisionNames[_league.DivisionOf[clubs[0]]]);
         }
 
         // Only the highest-ranked club from each division may take part in a wild-card tiebreaker.
@@ -71,7 +118,7 @@ internal sealed class Tiebreaker(SeasonTable table, ICoinToss coinToss, List<Tie
 
         return representatives.Count == 1
             ? representatives[0]
-            : SelectBest(representatives, WildCardSteps(), context, eliminatedByDivision: clubs.Count - representatives.Count);
+            : SelectBest(representatives, _wildCardSteps, context, eliminatedByDivision: clubs.Count - representatives.Count);
     }
 
     private int SelectBest(List<int> clubs, (string Name, Step Apply)[] steps, string context, int eliminatedByDivision = 0)
