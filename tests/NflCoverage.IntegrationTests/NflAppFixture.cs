@@ -10,7 +10,7 @@ namespace NflCoverage.IntegrationTests;
 
 /// <summary>
 /// Hosts the real app against a throwaway PostgreSQL database, with background ingestion and odds recalculation
-/// switched off, then imports the 2023 nflverse fixture through the real import pipeline.
+/// switched off, then imports the 2023 nflverse fixtures (schedule and statistics) through the real import pipeline.
 /// Set <c>NFL_TEST_POSTGRES</c> to reuse a running server; otherwise a Testcontainers PostgreSQL is started.
 /// </summary>
 public sealed class NflAppFixture : IAsyncLifetime
@@ -46,6 +46,7 @@ public sealed class NflAppFixture : IAsyncLifetime
 
         _ = Factory.Server; // starts the host, which applies migrations
         await ImportFixtureAsync();
+        await ImportStatsFixtureAsync();
     }
 
     public async Task<int> ImportFixtureAsync()
@@ -62,7 +63,30 @@ public sealed class NflAppFixture : IAsyncLifetime
         return run.RowsChanged;
     }
 
+    /// <summary>Imports the trimmed 2023 statistics files, resolving nflverse release paths to <c>Data/stats</c>.</summary>
+    /// <returns>The number of rows read.</returns>
+    public async Task<int> ImportStatsFixtureAsync()
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var importer = scope.ServiceProvider.GetRequiredService<NflverseStatsImporter>();
+        var db = scope.ServiceProvider.GetRequiredService<IngestionDbContext>();
+        var run = new ImportRun { Source = "test-stats", StartedAt = DateTimeOffset.UtcNow };
+        db.ImportRuns.Add(run);
+        await importer.ImportPlayersAsync(new StringReader(await File.ReadAllTextAsync(StatsDataPath("players.csv"))), run, CancellationToken.None);
+        await importer.ImportSeasonAsync(2023, gameLogs: true, OpenStatsFixture, run, CancellationToken.None);
+        await db.SaveChangesAsync();
+        return run.RowsRead;
+    }
+
     public static string DataPath(string file) => Path.Combine(AppContext.BaseDirectory, "Data", file);
+
+    public static string StatsDataPath(string file) => Path.Combine(AppContext.BaseDirectory, "Data", "stats", file);
+
+    private static async Task<TextReader?> OpenStatsFixture(string releasePath, CancellationToken cancellationToken)
+    {
+        var file = StatsDataPath(Path.GetFileName(releasePath));
+        return File.Exists(file) ? new StringReader(await File.ReadAllTextAsync(file, cancellationToken)) : null;
+    }
 
     public async ValueTask DisposeAsync()
     {

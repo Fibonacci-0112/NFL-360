@@ -1,0 +1,25 @@
+<a class="player-link" href="/players/@Id">
+    @if (HeadshotUrl is not null)
+    {
+        <img src="@HeadshotUrl" alt="" loading="lazy" width="28" height="28" />
+    }
+    else
+    {
+        <span class="headshot-placeholder" aria-hidden="true"></span>
+    }
+    <span>@Name</span>
+    @if (Position is not null)
+    {
+        <span class="muted small">@Position</span>
+    }
+</a>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    [Parameter] public string? HeadshotUrl { get; set; }
+
+    [Parameter] public string? Position { get; set; }
+}

@@ -1,0 +1,40 @@
+@* Header cells matching StatCells for the same groups. *@
+@foreach (var group in Groups)
+{
+    @switch (group)
+    {
+        case StatGroup.Passing:
+            <th class="num group-start" title="Completions">Cmp</th><th class="num" title="Attempts">Att</th><th class="num">Pct</th>
+            <th class="num" title="Passing yards">Yds</th><th class="num" title="Yards per attempt">Y/A</th><th class="num">TD</th>
+            <th class="num">Int</th><th class="num" title="Passer rating">Rate</th><th class="num" title="Sacks taken">Sk</th>
+            <th class="num" title="Expected points added">EPA</th><th class="num" title="Completion % over expected">CPOE</th>
+            break;
+        case StatGroup.Rushing:
+            <th class="num group-start" title="Carries">Car</th><th class="num" title="Rushing yards">Yds</th>
+            <th class="num" title="Yards per carry">Y/C</th><th class="num">TD</th><th class="num" title="Expected points added">EPA</th>
+            break;
+        case StatGroup.Receiving:
+            <th class="num group-start" title="Targets">Tgt</th><th class="num" title="Receptions">Rec</th>
+            <th class="num" title="Receiving yards">Yds</th><th class="num" title="Yards per reception">Y/R</th><th class="num">TD</th>
+            <th class="num" title="Catch rate">Catch</th><th class="num" title="Expected points added">EPA</th>
+            break;
+        case StatGroup.Defense:
+            <th class="num group-start" title="Combined tackles">Tkl</th><th class="num" title="Solo tackles">Solo</th>
+            <th class="num" title="Assisted tackles">Ast</th><th class="num" title="Tackles for loss">TFL</th><th class="num">Sacks</th>
+            <th class="num" title="Quarterback hits">QBH</th><th class="num" title="Interceptions">Int</th>
+            <th class="num" title="Passes defended">PD</th><th class="num" title="Forced fumbles">FF</th>
+            break;
+        case StatGroup.Kicking:
+            <th class="num group-start" title="Field goals made">FGM</th><th class="num" title="Field goals attempted">FGA</th>
+            <th class="num">FG%</th><th class="num" title="Longest field goal">Lng</th><th class="num" title="Extra points made">XPM</th>
+            <th class="num" title="Extra points attempted">XPA</th>
+            break;
+        default:
+            <th class="num group-start" title="Fantasy points, PPR scoring">PPR</th>
+            break;
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<StatGroup> Groups { get; set; } = [];
+}

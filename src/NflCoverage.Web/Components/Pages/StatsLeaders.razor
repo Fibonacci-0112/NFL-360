@@ -1,0 +1,140 @@
+@page "/stats/players/{Season:int?}"
+@inject IStatsQueries Stats
+@inject ILeagueQueries League
+@attribute [StreamRendering]
+
+<PageTitle>@(_season == 0 ? "Player leaders" : $"{_season} player leaders")</PageTitle>
+
+<StatsSectionNav Active="players" Season="_season" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2 flex-wrap">
+    <MudText Typo="Typo.h4">@(_season == 0 ? "" : _season.ToString()) Player leaders</MudText>
+    <SeasonPicker Seasons="_seasons" Selected="_season" Action="/stats/players" Hidden="@(new() { ["category"] = _category.ToString(), ["type"] = SeasonTypes.Code(_type) })" />
+</MudStack>
+
+<LinkTabs Label="Category" Class="mb-1" Items="@StatsDisplay.Categories.Select(c => (c.Label, Url(c.Category, _type), c.Category == _category))" />
+<LinkTabs Label="Season type" Class="mb-3 small" Items="@(new[] { ("Regular season", Url(_category, SeasonType.Regular), _type == SeasonType.Regular), ("Postseason", Url(_category, SeasonType.Postseason), _type == SeasonType.Postseason) })" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_rows.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No @_info.Label.ToLowerInvariant() statistics for this season yet. Statistics are imported from nflverse in the background.</MudAlert>
+}
+else
+{
+    @if (_category == LeaderCategory.PasserRating)
+    {
+        <MudText Typo="Typo.body2" Class="mb-2 muted">Minimum @StatFormulas.PasserRatingAttemptsPerGame pass attempts per team game.</MudText>
+    }
+
+    <div class="grid-scroll">
+        <QuickGrid Items="_rows.AsQueryable()" Pagination="_pagination" Class="stats-grid" ItemKey="r => r.PlayerId">
+            <NumberColumn Property="r => r.Rank" Title="#" Sortable="true" />
+            <GridTemplateColumn Title="Player" SortBy="ByName" Class="player-cell">
+                <PlayerLink Id="@context.PlayerId" Name="@context.Name" HeadshotUrl="@context.HeadshotUrl" Position="@context.Position" />
+            </GridTemplateColumn>
+            <GridTemplateColumn Title="Team" SortBy="ByTeam">
+                @if (context.Team is { } team)
+                {
+                    <a href="/teams/@team/@_season"><TeamBadge Id="@team" Team="@_teams.GetValueOrDefault(team)" /></a>
+                }
+            </GridTemplateColumn>
+            <NumberColumn Property="r => r.Games" Title="G" Sortable="true" />
+            @switch (_info.Group)
+            {
+                case StatGroup.Passing:
+                    <NumberColumn Property="r => r.Completions" Title="Cmp" Sortable="true" />
+                    <NumberColumn Property="r => r.Attempts" Title="Att" Sortable="true" />
+                    <NumberColumn Property="r => r.PassingYards" Title="Yds" Format="N0" Sortable="true" />
+                    <NumberColumn Property="r => r.PassingTds" Title="TD" Sortable="true" />
+                    <NumberColumn Property="r => r.Interceptions" Title="Int" Sortable="true" />
+                    <NumberColumn Property="r => r.Rating" Title="Rate" Format="0.0" Sortable="true" />
+                    <NumberColumn Property="r => r.PassingEpa" Title="EPA" Format="+0.0;-0.0;0.0" Sortable="true" />
+                    break;
+                case StatGroup.Rushing:
+                    <NumberColumn Property="r => r.Carries" Title="Car" Sortable="true" />
+                    <NumberColumn Property="r => r.RushingYards" Title="Yds" Format="N0" Sortable="true" />
+                    <NumberColumn Property="r => r.YardsPerCarry" Title="Y/C" Format="0.0" Sortable="true" />
+                    <NumberColumn Property="r => r.RushingTds" Title="TD" Sortable="true" />
+                    <NumberColumn Property="r => r.RushingEpa" Title="EPA" Format="+0.0;-0.0;0.0" Sortable="true" />
+                    break;
+                case StatGroup.Receiving:
+                    <NumberColumn Property="r => r.Receptions" Title="Rec" Sortable="true" />
+                    <NumberColumn Property="r => r.Targets" Title="Tgt" Sortable="true" />
+                    <NumberColumn Property="r => r.ReceivingYards" Title="Yds" Format="N0" Sortable="true" />
+                    <NumberColumn Property="r => r.YardsPerReception" Title="Y/R" Format="0.0" Sortable="true" />
+                    <NumberColumn Property="r => r.ReceivingTds" Title="TD" Sortable="true" />
+                    <NumberColumn Property="r => r.CatchRate" Title="Catch %" Format="P1" Sortable="true" />
+                    break;
+                case StatGroup.Defense:
+                    <NumberColumn Property="r => r.Tackles" Title="Tkl" Sortable="true" />
+                    <NumberColumn Property="r => r.Sacks" Title="Sacks" Format="0.#" Sortable="true" />
+                    <NumberColumn Property="r => r.TacklesForLoss" Title="TFL" Format="0.#" Sortable="true" />
+                    <NumberColumn Property="r => r.QbHits" Title="QB hits" Sortable="true" />
+                    <NumberColumn Property="r => r.DefInterceptions" Title="Int" Sortable="true" />
+                    <NumberColumn Property="r => r.PassesDefended" Title="PD" Sortable="true" />
+                    <NumberColumn Property="r => r.ForcedFumbles" Title="FF" Sortable="true" />
+                    break;
+                case StatGroup.Kicking:
+                    <NumberColumn Property="r => r.FgMade" Title="FGM" Sortable="true" />
+                    <NumberColumn Property="r => r.FgAttempted" Title="FGA" Sortable="true" />
+                    <NumberColumn Property="r => r.FgPct" Title="FG %" Format="P1" Sortable="true" />
+                    <NumberColumn Property="r => r.FgLong" Title="Long" Sortable="true" />
+                    <NumberColumn Property="r => r.PatMade" Title="XPM" Sortable="true" />
+                    <NumberColumn Property="r => r.PatAttempted" Title="XPA" Sortable="true" />
+                    break;
+                default:
+                    <NumberColumn Property="r => r.FantasyPointsPpr" Title="PPR" Format="0.0" Sortable="true" />
+                    <NumberColumn Property="r => r.PassingYards" Title="Pass yds" Format="N0" Sortable="true" />
+                    <NumberColumn Property="r => r.RushingYards" Title="Rush yds" Format="N0" Sortable="true" />
+                    <NumberColumn Property="r => r.ReceivingYards" Title="Rec yds" Format="N0" Sortable="true" />
+                    <NumberColumn Property="r => r.Touchdowns" Title="TD" Sortable="true" />
+                    break;
+            }
+        </QuickGrid>
+    </div>
+    <Paginator State="_pagination" />
+}
+
+@code {
+    private const int Top = 100;
+
+    [Parameter] public int? Season { get; set; }
+
+    [SupplyParameterFromQuery(Name = "season")] public int? SeasonQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "category")] public string? CategoryQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "type")] public string? TypeQuery { get; set; }
+
+    private readonly PaginationState _pagination = new() { ItemsPerPage = 25 };
+    private readonly GridSort<LeaderView> ByName = GridSort<LeaderView>.ByAscending(r => r.Name);
+    private readonly GridSort<LeaderView> ByTeam = GridSort<LeaderView>.ByAscending(r => r.Team);
+    private int _season;
+    private IReadOnlyList<int> _seasons = [];
+    private LeaderCategory _category;
+    private SeasonType _type;
+    private CategoryInfo _info = StatsDisplay.Categories[0];
+    private List<LeaderView> _rows = [];
+    private Dictionary<string, TeamInfo> _teams = [];
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _category = Enum.TryParse<LeaderCategory>(CategoryQuery, ignoreCase: true, out var c) ? c : LeaderCategory.PassingYards;
+        _info = StatsDisplay.Info(_category);
+        _type = SeasonTypes.Parse(TypeQuery);
+        _seasons = await Stats.GetSeasonsAsync();
+        _season = SeasonQuery ?? Season ?? _seasons.FirstOrDefault();
+        _teams = Format.Directory(await League.GetTeamsAsync());
+        _rows = [.. (await Stats.GetLeadersAsync(_season, _category, _type, Top)).Select(LeaderView.From)];
+        _loading = false;
+    }
+
+    private string Url(LeaderCategory category, SeasonType type) =>
+        $"/stats/players/{_season}?category={category}" + (type == SeasonType.Postseason ? "&type=POST" : "");
+}

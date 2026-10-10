@@ -20,12 +20,21 @@
     <Project Path="src/Modules/PlayoffOdds/NflCoverage.Modules.PlayoffOdds.Contracts/NflCoverage.Modules.PlayoffOdds.Contracts.csproj" />
     <Project Path="src/Modules/PlayoffOdds/NflCoverage.Modules.PlayoffOdds/NflCoverage.Modules.PlayoffOdds.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Stats/">
+    <Project Path="src/Modules/Stats/NflCoverage.Modules.Stats.Contracts/NflCoverage.Modules.Stats.Contracts.csproj" />
+    <Project Path="src/Modules/Stats/NflCoverage.Modules.Stats/NflCoverage.Modules.Stats.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/History/">
+    <Project Path="src/Modules/History/NflCoverage.Modules.History.Contracts/NflCoverage.Modules.History.Contracts.csproj" />
+    <Project Path="src/Modules/History/NflCoverage.Modules.History/NflCoverage.Modules.History.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Ingestion/">
     <Project Path="src/Modules/Ingestion/NflCoverage.Modules.Ingestion/NflCoverage.Modules.Ingestion.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/NflCoverage.ArchitectureTests/NflCoverage.ArchitectureTests.csproj" />
     <Project Path="tests/NflCoverage.IntegrationTests/NflCoverage.IntegrationTests.csproj" />
+    <Project Path="tests/NflCoverage.Modules.Tests/NflCoverage.Modules.Tests.csproj" />
     <Project Path="tests/NflCoverage.Rules.Tests/NflCoverage.Rules.Tests.csproj" />
     <Project Path="tests/NflCoverage.Simulation.Tests/NflCoverage.Simulation.Tests.csproj" />
   </Folder>

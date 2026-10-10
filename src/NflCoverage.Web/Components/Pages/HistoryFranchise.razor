@@ -1,0 +1,103 @@
+@page "/history/teams/{Id?}"
+@using System.Text.Json
+@inject IHistoryQueries History
+@inject ILeagueQueries League
+@attribute [StreamRendering]
+
+<PageTitle>@(_team is null ? "Franchise history" : $"{_team.Name} history")</PageTitle>
+
+<HistorySectionNav Active="franchises" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (string.IsNullOrEmpty(Id))
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Franchise history</MudText>
+    <TeamPicker Teams="_teamList" Href="@(team => $"/history/teams/{team}")" />
+}
+else if (_team is null || _history is null)
+{
+    <MudAlert Severity="Severity.Warning">Unknown team “@Id”.</MudAlert>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4 team-header flex-wrap" Style="@($"--team-color:{_team.PrimaryColor}")">
+        @if (_team.LogoUrl is not null)
+        {
+            <img src="@_team.LogoUrl" alt="" width="72" height="72" />
+        }
+        <div>
+            <MudText Typo="Typo.h4">@_team.Name</MudText>
+            <MudText Typo="Typo.subtitle1">
+                Since @(_history.Seasons.Count > 0 ? _history.Seasons[0].Season : "") ·
+                <a href="/teams/@_team.Id">Current season</a> ·
+                <a href="/history/head-to-head?a=@_team.Id">Head-to-head</a>
+            </MudText>
+        </div>
+    </MudStack>
+
+    var totals = _history.Totals;
+    <MudGrid Class="mb-4">
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Record" Value="@Format.Record(totals.Wins, totals.Losses, totals.Ties)" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Win %" Value="@Format.WinPct(totals.WinPct)" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Playoff trips" Value="@totals.PlayoffAppearances.ToString()" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Division titles" Value="@totals.DivisionTitles.ToString()" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Conference titles" Value="@totals.ConferenceTitles.ToString()" /></MudItem>
+        <MudItem xs="6" sm="4" md="2"><Stat Label="Super Bowls" Value="@totals.SuperBowlWins.ToString()" /></MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-2 mb-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="px-2">Regular-season win % by season</MudText>
+        <FranchiseChart Seasons="_history.Seasons" Team="_team" />
+    </MudPaper>
+
+    <MudPaper Class="pa-2" Elevation="1">
+        <div class="grid-scroll">
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead><tr><th>Season</th><th class="num">W-L-T</th><th class="num">Pct</th><th class="num">PF</th><th class="num">PA</th><th class="num">Diff</th><th>Division</th><th class="num">Seed</th><th>Playoffs</th></tr></thead>
+                <tbody>
+                    @foreach (var season in _history.Seasons.Reverse())
+                    {
+                        <tr class="@(season.Playoffs == PlayoffRound.None ? "out" : null)">
+                            <td><a href="/teams/@_team.Id/@season.Season">@season.Season</a></td>
+                            <td class="num">@Format.Record(season.Wins, season.Losses, season.Ties)</td>
+                            <td class="num">@Format.WinPct(season.WinPct)</td>
+                            <td class="num">@season.PointsFor</td>
+                            <td class="num">@season.PointsAgainst</td>
+                            <td class="num">@((season.PointsFor - season.PointsAgainst).ToString("+0;-0;0"))</td>
+                            <td>@(season.DivisionTitle == true ? "Champion" : "")</td>
+                            <td class="num">@(season.Seed?.ToString() ?? "")</td>
+                            <td>
+                                @Format.Playoffs(season.Playoffs, season.PlayoffLosses > 0)
+                                @if (season.Playoffs != PlayoffRound.None)
+                                {
+                                    <span class="muted"> (@season.PlayoffWins-@season.PlayoffLosses)</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    private TeamDto? _team;
+    private IReadOnlyList<TeamDto> _teamList = [];
+    private FranchiseHistory? _history;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _teamList = await League.GetTeamsAsync();
+        _team = _teamList.FirstOrDefault(t => string.Equals(t.Id, Id, StringComparison.OrdinalIgnoreCase));
+        _history = _team is null ? null : await History.GetFranchiseHistoryAsync(_team.Id);
+        _loading = false;
+    }
+}

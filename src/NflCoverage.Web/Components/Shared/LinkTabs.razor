@@ -1,0 +1,17 @@
+@*
+    A row of links styled as tabs. Navigation is a plain GET, so it works in static SSR without interactivity.
+*@
+<nav class="link-tabs @Class" aria-label="@Label">
+    @foreach (var (text, href, active) in Items)
+    {
+        <a href="@href" class="@(active ? "active" : null)" aria-current="@(active ? "page" : null)">@text</a>
+    }
+</nav>
+
+@code {
+    [Parameter, EditorRequired] public IEnumerable<(string Text, string Href, bool Active)> Items { get; set; } = [];
+
+    [Parameter] public string? Label { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+}

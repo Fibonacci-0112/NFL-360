@@ -1,0 +1,109 @@
+@page "/history"
+@using System.Text.Json
+@inject IHistoryQueries History
+@inject ILeagueQueries League
+@attribute [StreamRendering]
+
+<PageTitle>Super Bowl champions</PageTitle>
+
+<HistorySectionNav Active="champions" />
+
+<MudText Typo="Typo.h4" GutterBottom="true">Super Bowl champions</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_seasons.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No completed games yet. Results are imported from nflverse in the background.</MudAlert>
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" lg="8">
+            <MudPaper Class="pa-2" Elevation="1">
+                <div class="grid-scroll">
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>Season</th><th>Champion</th><th class="num">Score</th><th>Runner-up</th><th>AFC</th><th>NFC</th><th>Best record</th></tr></thead>
+                        <tbody>
+                            @foreach (var season in _seasons)
+                            {
+                                var sb = season.SuperBowl;
+                                <tr>
+                                    <td>@season.Season</td>
+                                    <td>@if (sb is not null) { <a href="/history/teams/@sb.Winner"><TeamBadge Id="@sb.Winner" Team="@Team(sb.Winner)" /></a> } else { <span class="muted">In progress</span> }</td>
+                                    <td class="num">@(sb is null ? "" : $"{sb.WinnerScore}-{sb.LoserScore}")</td>
+                                    <td>@if (sb is not null) { <a href="/history/teams/@sb.Loser"><TeamBadge Id="@sb.Loser" Team="@Team(sb.Loser)" /></a> }</td>
+                                    <td>@if (season.AfcChampion is { } afc) { <TeamBadge Id="@afc" Team="@Team(afc)" /> }</td>
+                                    <td>@if (season.NfcChampion is { } nfc) { <TeamBadge Id="@nfc" Team="@Team(nfc)" /> }</td>
+                                    <td>
+                                        @foreach (var best in season.BestRecordTeams)
+                                        {
+                                            <span class="mr-2"><TeamBadge Id="@best" Team="@Team(best)" /></span>
+                                        }
+                                        <span class="muted">@Format.Record(season.BestWins, season.BestLosses, season.BestTies)</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="4">
+            @if (_titles.Count > 0)
+            {
+                <MudPaper Class="pa-2" Elevation="1">
+                    <MudText Typo="Typo.subtitle1" Class="px-2">Titles since @_seasons[^1].Season</MudText>
+                    <EChart OptionsJson="@TitlesChart()" Height="@($"{Math.Max(200, (_titles.Count * 30) + 40)}px")" Label="Super Bowl titles by team" />
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private IReadOnlyList<SeasonSummary> _seasons = [];
+    private List<(string Team, int Titles)> _titles = [];
+    private Dictionary<string, TeamInfo> _teams = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _teams = Format.Directory(await League.GetTeamsAsync());
+        _seasons = await History.GetSeasonSummariesAsync();
+        _titles = [.. _seasons.Select(s => s.SuperBowl?.Winner).OfType<string>()
+            .GroupBy(t => t).Select(g => (g.Key, g.Count())).OrderByDescending(t => t.Item2).ThenBy(t => t.Key)];
+        _loading = false;
+    }
+
+    private TeamInfo? Team(string id) => _teams.GetValueOrDefault(id);
+
+    private string TitlesChart()
+    {
+        var bars = Enumerable.Reverse(_titles).ToList(); // ECharts draws category axes bottom-up
+        var options = new
+        {
+            grid = new { left = 48, right = 24, top = 8, bottom = 24 },
+            tooltip = new { trigger = "item", formatter = "detail" },
+            xAxis = new { type = "value", minInterval = 1 },
+            yAxis = new { type = "category", data = bars.Select(t => t.Team) },
+            series = new[]
+            {
+                new
+                {
+                    type = "bar",
+                    data = bars.Select(t => new
+                    {
+                        name = Team(t.Team)?.Name ?? t.Team,
+                        value = t.Titles,
+                        detail = $"{t.Titles} Super Bowl title{(t.Titles == 1 ? "" : "s")}",
+                        itemStyle = new { color = Team(t.Team)?.PrimaryColor ?? "#888888" },
+                    }),
+                },
+            },
+        };
+        return JsonSerializer.Serialize(options);
+    }
+}

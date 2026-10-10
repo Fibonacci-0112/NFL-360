@@ -1,0 +1,13 @@
+<LinkTabs Label="History sections" Class="mb-4 section-nav" Items="@Items" />
+
+@code {
+    /// <summary>champions, franchises or head-to-head.</summary>
+    [Parameter, EditorRequired] public string Active { get; set; } = "";
+
+    private IEnumerable<(string, string, bool)> Items =>
+    [
+        ("Champions", "/history", Active == "champions"),
+        ("Franchises", "/history/teams", Active == "franchises"),
+        ("Head-to-head", "/history/head-to-head", Active == "head-to-head"),
+    ];
+}

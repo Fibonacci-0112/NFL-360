@@ -1,8 +1,10 @@
 using MudBlazor.Services;
+using NflCoverage.Modules.History;
 using NflCoverage.Modules.Ingestion;
 using NflCoverage.Modules.League;
 using NflCoverage.Modules.PlayoffOdds;
 using NflCoverage.Modules.Standings;
+using NflCoverage.Modules.Stats;
 using NflCoverage.SharedKernel;
 using NflCoverage.Web;
 using NflCoverage.Web.Components;
@@ -11,7 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // The modular monolith: every module is registered explicitly; modules only see each other's Contracts.
-IModule[] modules = [new LeagueModule(), new StandingsModule(), new PlayoffOddsModule(), new IngestionModule()];
+IModule[] modules =
+[
+    new LeagueModule(), new StandingsModule(), new PlayoffOddsModule(), new StatsModule(), new HistoryModule(), new IngestionModule(),
+];
 foreach (var module in modules)
 {
     module.AddServices(builder.Services, builder.Configuration);

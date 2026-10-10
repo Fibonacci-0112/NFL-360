@@ -1,0 +1,29 @@
+@* Every team, grouped by division, each linking to Href(team). *@
+<MudGrid>
+    @foreach (var division in Teams.GroupBy(t => t.Division).OrderBy(d => d.Key))
+    {
+        <MudItem xs="6" sm="4" md="3">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-1">@division.Key</MudText>
+                @foreach (var team in division.OrderBy(t => t.Name))
+                {
+                    <div class="picker-team">
+                        <a href="@Href(team.Id)">
+                            @if (team.LogoUrl is not null)
+                            {
+                                <img src="@team.LogoUrl" alt="" width="22" height="22" loading="lazy" />
+                            }
+                            @team.Name
+                        </a>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TeamDto> Teams { get; set; } = [];
+
+    [Parameter, EditorRequired] public Func<string, string> Href { get; set; } = id => id;
+}

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\League\NflCoverage.Modules.League.Contracts\NflCoverage.Modules.League.Contracts.csproj" />
+    <ProjectReference Include="..\..\Stats\NflCoverage.Modules.Stats.Contracts\NflCoverage.Modules.Stats.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />

@@ -1,7 +1,10 @@
 @page "/teams/{Id}/{Season:int?}"
+@using System.Text.Json
 @inject ILeagueQueries League
 @inject IStandingsQueries StandingsQueries
 @inject IPlayoffOddsQueries Odds
+@inject IStatsQueries Stats
+@inject IHistoryQueries History
 @attribute [StreamRendering]
 
 <PageTitle>@(_team?.Name ?? Id)</PageTitle>
@@ -27,8 +30,13 @@ else
                 @_season · @_team.Division
                 @if (_standing is not null)
                 {
-                    <span> · @Format.Record(_standing.Wins, _standing.Losses, _standing.Ties), @Ordinal(_standing.DivisionRank) in division</span>
+                    <span> · @Format.Record(_standing.Wins, _standing.Losses, _standing.Ties), @Format.Ordinal(_standing.DivisionRank) in division</span>
                 }
+            </MudText>
+            <MudText Typo="Typo.body2">
+                <a href="/history/teams/@Id">Franchise history</a> ·
+                <a href="/history/head-to-head?a=@Id">Head-to-head</a> ·
+                <a href="/stats/teams/@_season">Team efficiency</a>
             </MudText>
         </div>
     </MudStack>
@@ -43,6 +51,18 @@ else
         </MudGrid>
     }
 
+    @if (_efficiency is not null)
+    {
+        <MudGrid Class="mb-4">
+            <MudItem xs="6" sm="3"><Stat Label="@($"Offense EPA/play · {Format.Ordinal(_efficiency.OffenseRank)}")" Value="@Format.Epa(_efficiency.OffenseEpaPerPlay, "+0.000;-0.000;0.000")" /></MudItem>
+            <MudItem xs="6" sm="3"><Stat Label="@($"Defense EPA/play · {Format.Ordinal(_efficiency.DefenseRank)}")" Value="@Format.Epa(_efficiency.DefenseEpaPerPlay, "+0.000;-0.000;0.000")" /></MudItem>
+            <MudItem xs="6" sm="3"><Stat Label="Yards per play" Value="@Format.Decimal(_efficiency.YardsPerPlay, "0.00")" /></MudItem>
+            <MudItem xs="6" sm="3"><Stat Label="Turnover margin" Value="@_efficiency.TurnoverDifferential.ToString("+0;-0;0")" /></MudItem>
+        </MudGrid>
+    }
+
+    <MudGrid>
+    <MudItem xs="12" lg="7">
     <MudPaper Class="pa-2" Elevation="1">
         <MudText Typo="Typo.h6" Class="px-2">Schedule</MudText>
         <MudSimpleTable Dense="true">
@@ -62,6 +82,47 @@ else
             </tbody>
         </MudSimpleTable>
     </MudPaper>
+    </MudItem>
+    <MudItem xs="12" lg="5">
+        @if (_leaders.Count > 0)
+        {
+            <MudPaper Class="pa-2 mb-4" Elevation="1">
+                <MudText Typo="Typo.h6" Class="px-2">@_season leaders</MudText>
+                <MudSimpleTable Dense="true">
+                    <tbody>
+                        @foreach (var leader in _leaders)
+                        {
+                            var info = StatsDisplay.Info(leader.Category);
+                            <tr>
+                                <td class="muted">@info.Label</td>
+                                <td><PlayerLink Id="@leader.Leader.Player.Id" Name="@leader.Leader.Player.Name" HeadshotUrl="@leader.Leader.Player.HeadshotUrl" Position="@leader.Leader.Player.Position" /></td>
+                                <td class="num">@leader.Leader.Value.ToString(info.ValueFormat, System.Globalization.CultureInfo.InvariantCulture)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        }
+        @if (_weekly.Count > 1)
+        {
+            <MudPaper Class="pa-2 mb-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" Class="px-2">EPA per play by game</MudText>
+                <EChart OptionsJson="@WeeklyChart()" Height="260px" Label="Offense and defense EPA per play by game" />
+            </MudPaper>
+        }
+    </MudItem>
+    </MudGrid>
+
+    @if (_history is { Seasons.Count: > 1 })
+    {
+        <MudPaper Class="pa-2 mt-4" Elevation="1">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="px-2">
+                <MudText Typo="Typo.subtitle1">Franchise win % by season</MudText>
+                <a href="/history/teams/@Id">Full history</a>
+            </MudStack>
+            <FranchiseChart Seasons="_history.Seasons" Team="_team" Height="240px" />
+        </MudPaper>
+    }
 }
 
 @code {
@@ -75,6 +136,10 @@ else
     private List<GameDto> _games = [];
     private StandingRow? _standing;
     private TeamPlayoffOdds? _odds;
+    private TeamComparisonRow? _efficiency;
+    private IReadOnlyList<TeamLeader> _leaders = [];
+    private IReadOnlyList<TeamGameEfficiency> _weekly = [];
+    private FranchiseHistory? _history;
     private bool _loading = true;
 
     protected override async Task OnParametersSetAsync()
@@ -88,6 +153,10 @@ else
         _games = [.. (await League.GetGamesAsync(_season)).Where(g => g.HomeTeam == Id || g.AwayTeam == Id)];
         _standing = (await StandingsQueries.GetAsync(_season))?.Teams.FirstOrDefault(t => t.TeamId == Id);
         _odds = (await Odds.GetLatestAsync(_season))?.Teams.FirstOrDefault(t => t.TeamId == Id);
+        _efficiency = (await Stats.GetTeamComparisonAsync(_season)).FirstOrDefault(t => t.Team == Id);
+        _leaders = await Stats.GetTeamRosterLeadersAsync(Id, _season);
+        _weekly = await Stats.GetTeamGameEfficiencyAsync(Id, _season);
+        _history = _team is null ? null : await History.GetFranchiseHistoryAsync(Id);
         _loading = false;
     }
 
@@ -105,5 +174,27 @@ else
         return $"{prefix}{us}-{them}";
     }
 
-    private static string Ordinal(int n) => n switch { 1 => "1st", 2 => "2nd", 3 => "3rd", _ => $"{n}th" };
+    private string WeeklyChart()
+    {
+        var games = _weekly;
+        var options = new
+        {
+            grid = new { left = 8, right = 16, top = 32, bottom = 8, containLabel = true },
+            legend = new { top = 0 },
+            tooltip = new { trigger = "axis", valueFormatter = "epa" },
+            xAxis = new
+            {
+                type = "category",
+                data = games.Select(g => (g.SeasonType == SeasonType.Regular ? $"W{g.Week}" : "P") + " " + g.Opponent),
+                axisLabel = new { rotate = 45, fontSize = 10 },
+            },
+            yAxis = new { type = "value", axisLabel = new { formatter = "epa" } },
+            series = new object[]
+            {
+                new { name = "Offense", type = "line", data = games.Select(g => Math.Round(g.OffenseEpaPerPlay, 3)), color = _team?.PrimaryColor ?? "#013369" },
+                new { name = "Defense allowed", type = "line", data = games.Select(g => Math.Round(g.DefenseEpaPerPlay, 3)), color = "#9e9e9e", lineStyle = new { type = "dashed" } },
+            },
+        };
+        return JsonSerializer.Serialize(options);
+    }
 }

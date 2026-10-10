@@ -1,0 +1,53 @@
+@using System.Text.Json
+@* Regular-season win % by season; playoff seasons in team colour, Super Bowl titles in gold. *@
+<EChart OptionsJson="@Options()" Height="@Height" Label="@($"{Team.Name} regular-season win percentage by season")" />
+<div class="chart-legend">
+    <span><i style="background:@Team.PrimaryColor"></i>Playoffs</span>
+    <span><i style="background:@Champion"></i>Won Super Bowl</span>
+    <span><i style="background:@Missed"></i>Missed playoffs</span>
+</div>
+
+@code {
+    private const string Champion = "#d4af37";
+    private const string Missed = "#b0bec5";
+
+    [Parameter, EditorRequired] public IReadOnlyList<FranchiseSeason> Seasons { get; set; } = [];
+
+    [Parameter, EditorRequired] public TeamDto Team { get; set; } = null!;
+
+    [Parameter] public string Height { get; set; } = "280px";
+
+    private string Options()
+    {
+        var options = new
+        {
+            grid = new { left = 44, right = 16, top = 16, bottom = 32 },
+            tooltip = new { trigger = "item", formatter = "detail" },
+            xAxis = new { type = "category", data = Seasons.Select(s => s.Season.ToString(System.Globalization.CultureInfo.InvariantCulture)) },
+            yAxis = new { type = "value", min = 0, max = 100, axisLabel = new { formatter = "{value}%" } },
+            series = new[]
+            {
+                new
+                {
+                    type = "bar",
+                    data = Seasons.Select(s => new
+                    {
+                        name = s.Season.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        value = Math.Round(s.WinPct * 100, 1),
+                        detail = Format.Record(s.Wins, s.Losses, s.Ties) + (s.Playoffs == PlayoffRound.None ? "" : " · " + Format.Playoffs(s.Playoffs, s.PlayoffLosses > 0)),
+                        itemStyle = new { color = s.Playoffs switch { PlayoffRound.Champion => Champion, PlayoffRound.None => Missed, _ => Team.PrimaryColor } },
+                    }),
+                    markLine = new
+                    {
+                        silent = true,
+                        symbol = "none",
+                        label = new { show = false },
+                        lineStyle = new { type = "dashed", color = "#9e9e9e" },
+                        data = new[] { new { yAxis = 50 } },
+                    },
+                },
+            },
+        };
+        return JsonSerializer.Serialize(options);
+    }
+}

@@ -11,13 +11,17 @@
     <ProjectReference Include="..\Modules\League\NflCoverage.Modules.League\NflCoverage.Modules.League.csproj" />
     <ProjectReference Include="..\Modules\Standings\NflCoverage.Modules.Standings\NflCoverage.Modules.Standings.csproj" />
     <ProjectReference Include="..\Modules\PlayoffOdds\NflCoverage.Modules.PlayoffOdds\NflCoverage.Modules.PlayoffOdds.csproj" />
+    <ProjectReference Include="..\Modules\Stats\NflCoverage.Modules.Stats\NflCoverage.Modules.Stats.csproj" />
+    <ProjectReference Include="..\Modules\History\NflCoverage.Modules.History\NflCoverage.Modules.History.csproj" />
     <ProjectReference Include="..\Modules\Ingestion\NflCoverage.Modules.Ingestion\NflCoverage.Modules.Ingestion.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
     <PackageReference Include="MudBlazor" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.QuickGrid" />
   </ItemGroup>
+
 
   <ItemGroup>
     <InternalsVisibleTo Include="NflCoverage.IntegrationTests" />
