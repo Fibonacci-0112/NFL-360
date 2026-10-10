@@ -29,6 +29,59 @@ internal static class Format
     public static Dictionary<string, TeamInfo> Directory(IEnumerable<TeamDto> teams) =>
         teams.ToDictionary(t => t.Id, t => new TeamInfo(t.Id, t.Name, t.Conference, t.Division, t.PrimaryColor, t.LogoUrl));
 
+    /// <summary>
+    /// CSS custom properties for a team-colored banner or page: the two team colors and how much of the primary to
+    /// keep when darkening it toward black so white text on it reaches 5:1. Light primaries such as the Saints' gold
+    /// need a deeper shade; mid-tones such as the Dolphins' teal cannot carry readable text of either color undarkened.
+    /// </summary>
+    public static string TeamColors(string primary, string secondary)
+    {
+        var depth = BannerDepth(primary);
+        return $"--team-color:{primary};--team-color-2:{secondary};--team-depth:{depth}%;--team-depth-end:{Math.Min(depth, 50)}%";
+    }
+
+    /// <summary>
+    /// The largest share of the primary (in a color-mix with black, starting from 88%) that keeps white text at 5:1
+    /// or better: 4.5:1 for normal text plus headroom for the banner's soft highlight.
+    /// </summary>
+    internal static int BannerDepth(string primary)
+    {
+        var rgb = ParseRgb(primary) ?? 0;
+        for (var depth = 88; depth > 0; depth -= 2)
+        {
+            var mixed = RelativeLuminance(Scale(rgb >> 16, depth), Scale(rgb >> 8, depth), Scale(rgb, depth));
+            if (ContrastRatio(1, mixed) >= 5)
+            {
+                return depth;
+            }
+        }
+
+        return 0;
+
+        static int Scale(int channel, int percent) => (int)Math.Round((channel & 0xFF) * percent / 100.0);
+    }
+
+    /// <summary>WCAG contrast ratio between two relative luminances.</summary>
+    internal static double ContrastRatio(double a, double b) => (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+
+    /// <summary>WCAG relative luminance of a #rrggbb color; unparseable colors count as dark.</summary>
+    internal static double RelativeLuminance(string hex) =>
+        ParseRgb(hex) is { } rgb ? RelativeLuminance(rgb >> 16, rgb >> 8, rgb) : 0;
+
+    private static double RelativeLuminance(int r, int g, int b)
+    {
+        static double Channel(int value)
+        {
+            var c = (value & 0xFF) / 255.0;
+            return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+        }
+
+        return (0.2126 * Channel(r)) + (0.7152 * Channel(g)) + (0.0722 * Channel(b));
+    }
+
+    private static int? ParseRgb(string hex) =>
+        hex is ['#', _, _, _, _, _, _] && int.TryParse(hex.AsSpan(1), NumberStyles.HexNumber, Invariant, out var rgb) ? rgb : null;
+
     public static string Number(double value) => value.ToString("#,0.#", Invariant);
 
     public static string Decimal(double? value, string format = "0.0") => value?.ToString(format, Invariant) ?? "–";

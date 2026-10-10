@@ -11,6 +11,7 @@ public class StatsAndHistoryTests(NflAppFixture app)
 {
     private const string Tua = "00-0036212";
     private const string Mahomes = "00-0033873";
+    private const string Cousins = "00-0029604";
 
     /// <summary>A 49ers fullback deliberately left out of the trimmed player directory fixture.</summary>
     private const string Juszczyk = "00-0029892";
@@ -214,6 +215,17 @@ public class StatsAndHistoryTests(NflAppFixture app)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await response.Content.ReadAsStringAsync(Ct)).Should().Contain("NFL 360");
+    }
+
+    [Fact]
+    public async Task Player_page_takes_the_current_team_colors_and_tags_seasons_by_their_team()
+    {
+        // Cousins's current team (LV) differs from the team of his imported 2023 season (MIN).
+        var html = await _client.GetStringAsync($"/players/{Cousins}", Ct);
+
+        html.Should().Contain("--team-color:#000000;--team-color-2:#A5ACAF", "the page is accented in the current team's colors");
+        html.Should().Contain("--row-team:#4F2683", "the 2023 row is tagged with Minnesota, the team that season");
+        html.Should().NotContain("--row-team:#000000", "no imported season was played for Las Vegas");
     }
 
     [Fact]
