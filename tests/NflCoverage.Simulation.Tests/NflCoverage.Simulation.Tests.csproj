@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="AwesomeAssertions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="AwesomeAssertions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NflCoverage.Simulation\NflCoverage.Simulation.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Reuse the historical schedule fixture owned by the Rules tests. -->
+    <Compile Include="..\NflCoverage.Rules.Tests\HistoricalData.cs" Link="HistoricalData.cs" />
+    <None Include="..\NflCoverage.Rules.Tests\Data\**" LinkBase="Data" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -8,7 +8,7 @@ namespace NflCoverage.Rules.Tests;
 /// </summary>
 internal static class HistoricalData
 {
-    public sealed record Game(int Season, string GameType, string Away, int AwayScore, string Home, int HomeScore, bool Neutral);
+    public sealed record Game(int Season, string GameType, int Week, string Away, int AwayScore, string Home, int HomeScore, bool Neutral);
 
     private static readonly Lazy<IReadOnlyList<Game>> GamesLazy = new(LoadGames);
     private static readonly Lazy<IReadOnlyDictionary<string, (Conference Conference, string Division)>> AlignmentLazy = new(LoadAlignment);
@@ -32,6 +32,7 @@ internal static class HistoricalData
         .. ReadCsv("games_2002_2025.csv").Select(r => new Game(
             int.Parse(r["season"], CultureInfo.InvariantCulture),
             r["game_type"],
+            int.Parse(r["week"], CultureInfo.InvariantCulture),
             r["away_team"],
             int.Parse(r["away_score"], CultureInfo.InvariantCulture),
             r["home_team"],

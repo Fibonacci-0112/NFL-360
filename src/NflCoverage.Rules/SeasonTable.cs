@@ -86,6 +86,9 @@ public sealed class SeasonTable
         other.PointsAgainst.CopyTo(PointsAgainst, 0);
     }
 
+    public (int Wins, int Losses, int Ties, int PointsFor, int PointsAgainst) RecordOf(int team) =>
+        (Wins[team], Losses[team], Ties[team], PointsFor[team], PointsAgainst[team]);
+
     public int GamesPlayed(int team) => Wins[team] + Losses[team] + Ties[team];
 
     public double WinPct(int team)
