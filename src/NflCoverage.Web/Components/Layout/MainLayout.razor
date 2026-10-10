@@ -1,26 +1,39 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
-<MudThemeProvider Theme="Theme" />
+<MudThemeProvider Theme="Theme" IsDarkMode="IsDark" />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Color="Color.Primary">
-        <MudLink Href="/" Color="Color.Inherit" Underline="Underline.None" Class="brand">NFL 360</MudLink>
+    <MudAppBar Elevation="0" Color="Color.Primary" Class="site-header">
+        <a href="/" class="brand" aria-label="NFL 360 home">
+            <span class="brand-mark" aria-hidden="true">360</span>
+            <span class="brand-text">NFL <strong>360</strong></span>
+        </a>
         <MudSpacer />
-        <nav class="top-nav">
-            <MudButton Href="/standings" Color="Color.Inherit">Standings</MudButton>
-            <MudButton Href="/playoffs/odds" Color="Color.Inherit">Playoff odds</MudButton>
-            <MudButton Href="/playoffs/what-if" Color="Color.Inherit">What-if</MudButton>
-            <MudButton Href="/stats/players" Color="Color.Inherit">Stats</MudButton>
-            <MudButton Href="/history" Color="Color.Inherit">History</MudButton>
+        <nav class="top-nav" aria-label="Main">
+            @foreach (var (text, href, prefixes) in Sections)
+            {
+                <a href="@href" class="@(IsActive(prefixes) ? "active" : null)" aria-current="@(IsActive(prefixes) ? "page" : null)">@text</a>
+            }
         </nav>
         <form method="get" action="/players" class="nav-search" role="search">
             <input type="search" name="q" placeholder="Search players" aria-label="Search players" minlength="2" required />
         </form>
+        <button type="button" class="theme-toggle" data-theme-toggle
+                aria-label="@(IsDark ? "Switch to light mode" : "Switch to dark mode")" title="@(IsDark ? "Light mode" : "Dark mode")">
+            <MudIcon Icon="@(IsDark ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" Size="Size.Small" />
+        </button>
     </MudAppBar>
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6 page">
             @Body
         </MudContainer>
+        <footer class="site-footer">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+                <span class="brand-text">NFL <strong>360</strong></span>
+                <span class="muted">Schedules and stats from nflverse · live scores from ESPN · odds simulated with official NFL tiebreakers.</span>
+            </MudContainer>
+        </footer>
     </MudMainContent>
 </MudLayout>
 
@@ -31,9 +44,69 @@
 </div>
 
 @code {
+    private static readonly (string Text, string Href, string[] Prefixes)[] Sections =
+    [
+        ("Standings", "/standings", ["standings"]),
+        ("Playoff odds", "/playoffs/odds", ["playoffs/odds"]),
+        ("What-if", "/playoffs/what-if", ["playoffs/what-if"]),
+        ("Stats", "/stats/players", ["stats", "players"]),
+        ("History", "/history", ["history"]),
+    ];
+
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private bool IsDark => ThemePreference.IsDark(HttpContext);
+
+    private bool IsActive(string[] prefixes)
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+        return prefixes.Any(p => path == p || path.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static readonly string[] BodyFont = ["Inter", "system-ui", "sans-serif"];
+    private static readonly string[] DisplayFont = ["Barlow Condensed", "Inter", "system-ui", "sans-serif"];
+
     private static readonly MudTheme Theme = new()
     {
-        PaletteLight = new PaletteLight { Primary = "#013369", Secondary = "#D50A0A", AppbarBackground = "#013369" },
-        PaletteDark = new PaletteDark { Primary = "#4A8FE7", Secondary = "#FF5252" },
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#013369",
+            Secondary = "#D50A0A",
+            AppbarBackground = "#00224A",
+            Background = "#F2F4F8",
+            Surface = "#FFFFFF",
+            TextPrimary = "#14213D",
+            TextSecondary = "#5B6478",
+            LinesDefault = "#E4E8EF",
+            TableLines = "#E9EDF3",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#5B9BEF",
+            Secondary = "#FF4D4D",
+            AppbarBackground = "#00152E",
+            Background = "#0B1220",
+            Surface = "#131C2E",
+            DrawerBackground = "#131C2E",
+            TextPrimary = "#E6EAF2",
+            TextSecondary = "#9AA4B8",
+            LinesDefault = "#25314A",
+            LinesInputs = "#3A4763",
+            TableLines = "#202B42",
+            Divider = "#25314A",
+            ActionDefault = "#B4BDCE",
+        },
+        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = BodyFont },
+            H3 = new H3Typography { FontFamily = DisplayFont, FontWeight = "800", LetterSpacing = "0.01em" },
+            H4 = new H4Typography { FontFamily = DisplayFont, FontWeight = "800", LetterSpacing = "0.01em", TextTransform = "uppercase" },
+            H5 = new H5Typography { FontFamily = DisplayFont, FontWeight = "700", LetterSpacing = "0.02em", TextTransform = "uppercase" },
+            H6 = new H6Typography { FontFamily = DisplayFont, FontWeight = "700", LetterSpacing = "0.03em", TextTransform = "uppercase" },
+            Subtitle1 = new Subtitle1Typography { FontWeight = "600" },
+            Subtitle2 = new Subtitle2Typography { FontWeight = "600" },
+            Button = new ButtonTypography { FontWeight = "600", LetterSpacing = "0.04em" },
+        },
     };
 }

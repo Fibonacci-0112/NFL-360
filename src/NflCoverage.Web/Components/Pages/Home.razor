@@ -2,67 +2,53 @@
 
 <PageTitle>NFL 360 Coverage</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">NFL 360 Coverage</MudText>
-<MudText Typo="Typo.subtitle1" Class="mb-6">
-    Standings with every official tiebreaker applied, playoff probabilities from thousands of simulated seasons,
-    and a what-if simulator that runs in your browser.
-</MudText>
+<section class="hero">
+    <div class="hero-content">
+        <span class="eyebrow">Every team · every tiebreaker · every scenario</span>
+        <h1>The whole league,<br /><span>all 360 degrees.</span></h1>
+        <p>
+            Standings with every official tiebreaker applied, playoff probabilities from thousands of simulated seasons,
+            and a what-if simulator that runs in your browser.
+        </p>
+        <div class="hero-actions">
+            <MudButton Href="/playoffs/odds" Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large">Playoff odds</MudButton>
+            <MudButton Href="/playoffs/what-if" Variant="Variant.Outlined" Size="Size.Large" Class="hero-outline">Play what-if</MudButton>
+        </div>
+    </div>
+</section>
 
 <LiveScoreboard @rendermode="InteractiveServer" />
 
-<MudGrid Class="mt-6">
-    <MudItem xs="12" md="4">
-        <MudCard Elevation="1">
-            <MudCardContent>
-                <MudText Typo="Typo.h6">Standings</MudText>
-                <MudText Typo="Typo.body2">Division and conference tables with seeds and the tiebreak that decided each tie.</MudText>
-            </MudCardContent>
-            <MudCardActions><MudButton Href="/standings" Color="Color.Primary">View standings</MudButton></MudCardActions>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudCard Elevation="1">
-            <MudCardContent>
-                <MudText Typo="Typo.h6">Playoff odds</MudText>
-                <MudText Typo="Typo.body2">Chances to make the playoffs, win the division, earn the bye and win it all — and how they moved week to week.</MudText>
-            </MudCardContent>
-            <MudCardActions><MudButton Href="/playoffs/odds" Color="Color.Primary">View odds</MudButton></MudCardActions>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudCard Elevation="1">
-            <MudCardContent>
-                <MudText Typo="Typo.h6">What-if simulator</MudText>
-                <MudText Typo="Typo.body2">Pick winners of upcoming games and watch the playoff picture change instantly.</MudText>
-            </MudCardContent>
-            <MudCardActions><MudButton Href="/playoffs/what-if" Color="Color.Primary">Open simulator</MudButton></MudCardActions>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudCard Elevation="1">
-            <MudCardContent>
-                <MudText Typo="Typo.h6">Player stats</MudText>
-                <MudText Typo="Typo.body2">Leaderboards for every season since 1999, career pages and game logs for every player.</MudText>
-            </MudCardContent>
-            <MudCardActions><MudButton Href="/stats/players" Color="Color.Primary">View leaders</MudButton></MudCardActions>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudCard Elevation="1">
-            <MudCardContent>
-                <MudText Typo="Typo.h6">Team efficiency</MudText>
-                <MudText Typo="Typo.body2">Offense and defense compared by expected points added per play, the best single measure of team quality.</MudText>
-            </MudCardContent>
-            <MudCardActions><MudButton Href="/stats/teams" Color="Color.Primary">Compare teams</MudButton></MudCardActions>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudCard Elevation="1">
-            <MudCardContent>
-                <MudText Typo="Typo.h6">History</MudText>
-                <MudText Typo="Typo.body2">Super Bowl champions, every franchise season by season, and head-to-head series between any two teams.</MudText>
-            </MudCardContent>
-            <MudCardActions><MudButton Href="/history" Color="Color.Primary">Explore history</MudButton></MudCardActions>
-        </MudCard>
-    </MudItem>
-</MudGrid>
+<MudText Typo="Typo.h5" Class="section-title mt-10 mb-4">Explore</MudText>
+
+<div class="feature-grid">
+    @foreach (var feature in Features)
+    {
+        <a class="feature-card" href="@feature.Href" style="--accent:@feature.Accent">
+            <span class="feature-icon"><MudIcon Icon="@feature.Icon" /></span>
+            <span class="feature-title">@feature.Title</span>
+            <span class="feature-text">@feature.Text</span>
+            <span class="feature-cta">@feature.Cta <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" /></span>
+        </a>
+    }
+</div>
+
+@code {
+    private sealed record Feature(string Title, string Text, string Cta, string Href, string Icon, string Accent);
+
+    private static readonly Feature[] Features =
+    [
+        new("Standings", "Division and conference tables with seeds and the tiebreak that decided each tie.",
+            "View standings", "/standings", Icons.Material.Filled.FormatListNumbered, "var(--nfl-accent)"),
+        new("Playoff odds", "Chances to make the playoffs, win the division, earn the bye and win it all — and how they moved week to week.",
+            "View odds", "/playoffs/odds", Icons.Material.Filled.Insights, "#D50A0A"),
+        new("What-if simulator", "Pick winners of upcoming games and watch the playoff picture change instantly.",
+            "Open simulator", "/playoffs/what-if", Icons.Material.Filled.Tune, "#E8A317"),
+        new("Player stats", "Leaderboards for every season since 1999, career pages and game logs for every player.",
+            "View leaders", "/stats/players", Icons.Material.Filled.SportsFootball, "#1B7F4B"),
+        new("Team efficiency", "Offense and defense compared by expected points added per play, the best single measure of team quality.",
+            "Compare teams", "/stats/teams", Icons.Material.Filled.Speed, "#6A3FB5"),
+        new("History", "Super Bowl champions, every franchise season by season, and head-to-head series between any two teams.",
+            "Explore history", "/history", Icons.Material.Filled.EmojiEvents, "#B8860B"),
+    ];
+}

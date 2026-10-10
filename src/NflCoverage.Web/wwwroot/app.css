@@ -1,22 +1,132 @@
 :root {
-  --nfl-up: #2e7d32;
-  --nfl-down: #c62828;
-  --nfl-muted: rgba(0, 0, 0, 0.45);
+  --nfl-navy: #013369;
+  --nfl-navy-deep: #00224A;
+  --nfl-red: #D50A0A;
+  --nfl-gold: #E8A317;
+  --nfl-up: #1B7F4B;
+  --nfl-down: #C62828;
+  --nfl-muted: rgba(20, 33, 61, 0.55);
+  --nfl-card-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 16px rgba(16, 24, 40, 0.06);
+  --nfl-card-shadow-hover: 0 4px 10px rgba(16, 24, 40, 0.08), 0 16px 32px rgba(16, 24, 40, 0.12);
+  --nfl-display: "Barlow Condensed", Inter, system-ui, sans-serif;
+  /* Theme-dependent tokens: brand navy reads as an accent on light surfaces only, so dark mode swaps in a lighter blue. */
+  --nfl-accent: var(--nfl-navy);
+  --nfl-table-head: #F7F9FC;
+  --nfl-row-hover: rgba(1, 51, 105, 0.04);
+  --nfl-header-end: #0B4A93;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root { --nfl-muted: rgba(255, 255, 255, 0.5); }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --nfl-up: #4CC38A;
+  --nfl-down: #FF6B6B;
+  --nfl-muted: rgba(230, 234, 242, 0.55);
+  --nfl-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --nfl-card-shadow-hover: 0 4px 10px rgba(0, 0, 0, 0.45), 0 16px 32px rgba(0, 0, 0, 0.4);
+  --nfl-accent: #5B9BEF;
+  --nfl-table-head: #172238;
+  --nfl-row-hover: rgba(91, 155, 239, 0.08);
+  --nfl-navy-deep: #000D1F;
+  --nfl-navy: #00224A;
+  --nfl-header-end: #073873;
 }
 
-body { font-family: Roboto, system-ui, sans-serif; }
+body { font-family: Inter, system-ui, sans-serif; background: var(--mud-palette-background); }
 
-.brand { font-weight: 700; font-size: 1.25rem; letter-spacing: 0.02em; }
-.top-nav { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+/* Blazor focuses the page heading after navigation; that focus should not draw a ring. */
+h1:focus { outline: none; }
+
+a { color: var(--mud-palette-primary); }
+
+/* ---------- Site chrome ---------- */
+
+.site-header.mud-appbar {
+  background: linear-gradient(90deg, var(--nfl-navy-deep) 0%, var(--nfl-navy) 60%, var(--nfl-header-end) 100%);
+  border-bottom: 3px solid var(--nfl-red);
+}
+.brand { display: inline-flex; align-items: center; gap: 0.6rem; color: #fff; text-decoration: none; }
+.brand-mark {
+  display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 50%;
+  font: 800 0.95rem/1 var(--nfl-display); letter-spacing: 0.02em; color: #fff; background: var(--nfl-red);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85), inset 0 0 0 4px var(--nfl-red), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.brand-text { font: 600 1.6rem/1 var(--nfl-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.brand-text strong { font-weight: 800; color: #fff; }
+.site-header .brand-text strong { color: #FFD166; }
+
+.top-nav { display: flex; gap: 0.15rem; flex-wrap: wrap; align-self: stretch; }
+.top-nav a {
+  display: inline-flex; align-items: center; padding: 0 0.85rem; color: rgba(255, 255, 255, 0.78); text-decoration: none;
+  font: 700 1.05rem/1 var(--nfl-display); letter-spacing: 0.06em; text-transform: uppercase;
+  white-space: nowrap; border-bottom: 3px solid transparent; transition: color 0.15s, background-color 0.15s;
+}
+.top-nav a:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.top-nav a.active { color: #fff; background: rgba(255, 255, 255, 0.1); border-bottom-color: #FFD166; }
+
 .nav-search input {
-  margin-left: 0.5rem; padding: 0.3rem 0.6rem; width: 11rem; border-radius: 4px; border: none;
-  background: rgba(255, 255, 255, 0.15); color: inherit; font: inherit;
+  margin-left: 0.75rem; padding: 0.45rem 0.8rem 0.45rem 2rem; width: 12rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffffb0'%3E%3Cpath d='M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9'/%3E%3C/svg%3E") no-repeat 0.6rem center / 1rem;
+  color: inherit; font: inherit; font-size: 0.9rem; transition: background-color 0.15s, width 0.2s;
 }
+.theme-toggle {
+  display: inline-grid; place-items: center; width: 2.2rem; height: 2.2rem; margin-left: 0.5rem; padding: 0; flex: none;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.1); color: #fff; cursor: pointer;
+  transition: background-color 0.15s, transform 0.3s;
+}
+.theme-toggle:hover { background: rgba(255, 255, 255, 0.22); transform: rotate(20deg); }
+.theme-toggle:focus-visible { outline: 2px solid #FFD166; outline-offset: 2px; }
 .nav-search input::placeholder { color: rgba(255, 255, 255, 0.7); }
+.nav-search input:focus { outline: none; background-color: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.5); width: 15rem; }
+
+.site-footer { margin-top: 3rem; padding: 1.5rem 0; border-top: 1px solid var(--mud-palette-lines-default); background: var(--mud-palette-surface); }
+.site-footer .mud-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.25rem; font-size: 0.85rem; }
+.site-footer .brand-text { font-size: 1.2rem; color: var(--mud-palette-text-primary); }
+.site-footer .brand-text strong { color: var(--nfl-red); }
+
+@media (max-width: 960px) {
+  /* The bar wraps onto several rows here, so let it flow with the page instead of overlapping it. */
+  .site-header.mud-appbar { position: relative; }
+  .mud-layout .mud-main-content { padding-top: 0; }
+  .site-header .mud-toolbar { flex-wrap: wrap; height: auto; padding-top: 0.6rem; gap: 0.5rem; }
+  .top-nav { order: 3; flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .top-nav a { padding: 0.65rem 0.7rem; }
+  .nav-search input, .nav-search input:focus { margin-left: 0; width: 10rem; }
+  .hero { padding: 2rem 1.5rem; }
+  .team-banner { padding: 1.5rem; gap: 1.25rem; }
+}
+
+/* ---------- Surfaces ---------- */
+
+.mud-paper.mud-elevation-1 { box-shadow: var(--nfl-card-shadow); border: 1px solid var(--mud-palette-lines-default); }
+
+/* Panel titles: the first heading inside a card gets an accent bar. */
+.mud-paper > .mud-typography-h6.px-2:first-child,
+.mud-paper > .mud-typography-subtitle1.px-2:first-child,
+.mud-paper > .mud-typography-subtitle2:first-child {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem 0.6rem !important;
+  font-family: var(--nfl-display); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.mud-paper > .mud-typography-h6.px-2:first-child::before,
+.mud-paper > .mud-typography-subtitle1.px-2:first-child::before,
+.mud-paper > .mud-typography-subtitle2:first-child::before {
+  content: ""; width: 4px; height: 1.1em; border-radius: 2px; background: var(--nfl-red);
+}
+.mud-paper > .mud-typography-subtitle1.px-2:first-child { font-size: 1.1rem; }
+
+.section-title { display: flex; align-items: center; gap: 0.75rem; }
+.section-title::after { content: ""; flex: 1; height: 2px; background: linear-gradient(90deg, var(--mud-palette-lines-default), transparent); }
+
+/* Dense MudSimpleTable: quieter header, tinted hover. */
+.mud-simple-table.mud-table-dense thead th,
+table.stats-grid thead th {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mud-palette-text-secondary);
+  background: var(--nfl-table-head); border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+.mud-simple-table tbody tr { transition: background-color 0.1s; }
+.mud-simple-table tbody tr:hover { background: var(--nfl-row-hover); }
+.mud-simple-table td a, table.stats-grid td a { text-decoration: none; }
+.mud-simple-table table * tr > td, .mud-simple-table table * tr > th { vertical-align: middle; }
+.mud-simple-table table * tr > td.num, .mud-simple-table table * tr > th.num { text-align: right; }
 
 .muted { color: var(--nfl-muted); }
 .small { font-size: 0.85rem; }
@@ -24,22 +134,30 @@ body { font-family: Roboto, system-ui, sans-serif; }
 /* Link rows styled as tabs; plain GET navigation keeps them working without interactivity. */
 .link-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--mud-palette-lines-default); }
 .link-tabs a {
-  padding: 0.4rem 0.75rem; color: inherit; text-decoration: none; border-bottom: 2px solid transparent;
-  white-space: nowrap; opacity: 0.8;
+  padding: 0.5rem 0.9rem; color: var(--mud-palette-text-secondary); text-decoration: none; border-bottom: 3px solid transparent;
+  margin-bottom: -1px; white-space: nowrap; font-weight: 600; font-size: 0.9rem; transition: color 0.15s;
 }
-.link-tabs a:hover { opacity: 1; background: var(--mud-palette-action-default-hover); }
-.link-tabs a.active { border-bottom-color: var(--mud-palette-primary); font-weight: 500; opacity: 1; }
-.link-tabs.small a { padding: 0.25rem 0.6rem; font-size: 0.85rem; }
-.link-tabs.small { border-bottom: none; }
+.link-tabs a:hover { color: var(--mud-palette-text-primary); }
+.link-tabs a.active { border-bottom-color: var(--nfl-red); color: var(--mud-palette-text-primary); }
+.link-tabs.small { border-bottom: none; gap: 0.35rem; }
+.link-tabs.small a {
+  padding: 0.25rem 0.75rem; font-size: 0.8rem; border: 1px solid var(--mud-palette-lines-default); border-radius: 999px;
+  background: var(--mud-palette-surface); margin: 0;
+}
+.link-tabs.small a:hover { border-color: var(--nfl-accent); }
+.link-tabs.small a.active { background: var(--nfl-accent); border-color: var(--nfl-accent); color: #fff; }
 
 .season-picker, .search-form, .h2h-form { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .season-picker label, .team-select { display: inline-flex; align-items: center; gap: 0.4rem; }
 .season-picker select, .search-form input, .h2h-form select, .season-picker button, .search-form button, .h2h-form button {
-  font: inherit; padding: 0.35rem 0.6rem; border-radius: 4px; border: 1px solid var(--mud-palette-lines-inputs);
+  font: inherit; padding: 0.4rem 0.7rem; border-radius: 8px; border: 1px solid var(--mud-palette-lines-inputs);
   background: var(--mud-palette-surface); color: var(--mud-palette-text-primary);
 }
 .search-form input { min-width: 16rem; }
-.search-form button, .h2h-form button { background: var(--mud-palette-primary); color: var(--mud-palette-primary-text); border-color: transparent; cursor: pointer; }
+.search-form button, .h2h-form button, .season-picker button {
+  background: var(--mud-palette-primary); color: var(--mud-palette-primary-text); border-color: transparent; cursor: pointer; font-weight: 600;
+}
+.search-form button:hover, .h2h-form button:hover, .season-picker button:hover { filter: brightness(1.15); }
 .h2h-form .swap { margin-left: 0.25rem; }
 
 /* QuickGrid tables: compact, scroll horizontally on narrow screens. */
@@ -77,37 +195,162 @@ tr.total td { font-weight: 500; border-top: 2px solid var(--mud-palette-lines-de
 .up { color: var(--nfl-up); font-weight: 500; }
 .down { color: var(--nfl-down); font-weight: 500; }
 
-.team-badge { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 500; white-space: nowrap; }
+.team-badge { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600; white-space: nowrap; vertical-align: middle; }
+.team-logo { width: 22px; height: 22px; object-fit: contain; flex: none; }
+/* Navy and black logos vanish on dark surfaces; a thin light outline keeps every logo legible. */
+:root[data-theme="dark"] .team-logo, :root[data-theme="dark"] .picker-team img, :root[data-theme="dark"] nfl-echart image {
+  filter: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.35));
+}
 .team-dot { width: 0.75rem; height: 0.75rem; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
 a .team-badge { color: inherit; }
 a:has(.team-badge) { text-decoration: none; color: inherit; }
+a:hover .team-badge { color: var(--mud-palette-primary); }
 
 sup.seed { margin-left: 0.25rem; font-size: 0.7rem; color: var(--nfl-muted); }
 
 tr.out td { color: var(--nfl-muted); }
-tr.cut-line td { border-bottom: 2px solid var(--mud-palette-secondary) !important; }
+tr.cut-line td { border-bottom: 2px dashed var(--nfl-red) !important; }
+
+.seed-pill {
+  display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.5rem; border-radius: 6px; padding: 0 0.3rem;
+  font: 800 0.95rem/1 var(--nfl-display); color: #fff; background: var(--nfl-accent);
+}
+tr.wild-card .seed-pill { background: var(--mud-palette-surface); color: var(--nfl-accent); box-shadow: inset 0 0 0 2px var(--nfl-accent); }
 
 .week-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
 
 /* Heat cell: background intensity follows the probability passed as --p (0..1). */
-td.heat { background: color-mix(in srgb, var(--mud-palette-primary) calc(var(--p) * 35%), transparent); }
+td.heat { background: color-mix(in srgb, var(--nfl-up) calc(var(--p) * 45%), transparent); font-weight: 600; }
 
 .tiebreaks { margin-top: 1rem; }
 .tiebreaks summary { cursor: pointer; font-weight: 500; }
 
 .pick-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+.pick-row .mud-button-root { min-width: 6.5rem; justify-content: flex-start; border-radius: 999px; }
 .pick-at { color: var(--nfl-muted); min-width: 1.5rem; text-align: center; }
 
-.scoreboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
-.score-card { border: 1px solid var(--mud-palette-lines-default); border-radius: 8px; padding: 0.5rem 0.75rem; }
-.score-card.live { border-color: var(--mud-palette-error); }
-.score-line { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
-.score-status { font-size: 0.75rem; color: var(--nfl-muted); margin-top: 0.25rem; }
+.scoreboard-panel {
+  background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-lines-default); border-radius: 16px;
+  box-shadow: var(--nfl-card-shadow); padding: 1rem 1.25rem 1.25rem;
+}
+.scoreboard-head { display: flex; align-items: center; justify-content: space-between; }
+.scoreboard-head h2 { margin: 0; font: 800 1.5rem/1.2 var(--nfl-display); letter-spacing: 0.03em; text-transform: uppercase; }
+.live-pill {
+  display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px;
+  background: var(--nfl-red); color: #fff; font: 800 0.85rem/1.2 var(--nfl-display); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.live-pill i, .score-card.live .score-status::before {
+  width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; animation: nfl-pulse 1.4s ease-in-out infinite;
+}
+.live-pill i { display: inline-block; }
+@keyframes nfl-pulse { 50% { opacity: 0.25; } }
 
-.team-header { border-left: 6px solid var(--team-color); padding-left: 1rem; }
-.stat { text-align: center; }
-.stat-value { font-size: 1.75rem; font-weight: 700; }
-.stat-label { font-size: 0.8rem; color: var(--nfl-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.scoreboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.75rem; margin-top: 0.85rem; }
+.score-card {
+  position: relative; overflow: hidden; border: 1px solid var(--mud-palette-lines-default); border-radius: 12px;
+  padding: 0.6rem 0.85rem 0.55rem 1.05rem; background: var(--mud-palette-surface); transition: transform 0.15s, box-shadow 0.15s;
+}
+.score-card::before {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(var(--away) 0 50%, var(--home) 50% 100%);
+}
+.score-card:hover { transform: translateY(-2px); box-shadow: var(--nfl-card-shadow-hover); }
+.score-card.live { border-color: var(--nfl-red); box-shadow: 0 0 0 1px var(--nfl-red); }
+.score-line { display: flex; justify-content: space-between; align-items: center; padding: 0.1rem 0; font-variant-numeric: tabular-nums; }
+.score-line > span:last-child { font: 700 1.25rem/1.2 var(--nfl-display); }
+.score-card.final .score-line:not(.winner) { color: var(--nfl-muted); }
+.score-card.final .score-line:not(.winner) .team-logo { opacity: 0.6; }
+.score-line.winner > span:last-child { color: var(--mud-palette-text-primary); }
+.score-status {
+  display: flex; align-items: center; gap: 0.35rem; margin-top: 0.35rem; padding-top: 0.35rem; border-top: 1px dashed var(--mud-palette-lines-default);
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--nfl-muted);
+}
+.score-card.live .score-status { color: var(--nfl-red); }
+.score-card.live .score-status::before { content: ""; }
+
+/* ---------- Home ---------- */
+
+.hero {
+  position: relative; overflow: hidden; margin-bottom: 1.5rem; padding: 3rem 2.5rem; border-radius: 20px; color: #fff;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(255, 255, 255, 0.07) calc(10% - 1px) 10%),
+    radial-gradient(ellipse at 85% 20%, rgba(213, 10, 10, 0.55), transparent 55%),
+    linear-gradient(120deg, var(--nfl-navy-deep) 0%, var(--nfl-navy) 55%, var(--nfl-header-end) 100%);
+  box-shadow: 0 20px 40px -20px rgba(1, 34, 74, 0.6);
+}
+.hero::after {
+  content: "360"; position: absolute; right: -1rem; bottom: -3.5rem; font: 800 16rem/1 var(--nfl-display);
+  color: rgba(255, 255, 255, 0.06); letter-spacing: -0.02em; pointer-events: none;
+}
+.hero-content { position: relative; z-index: 1; max-width: 46rem; }
+.eyebrow {
+  display: inline-block; font: 700 0.95rem/1 var(--nfl-display); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85;
+}
+.hero .eyebrow { color: #FFD166; }
+.hero h1 { margin: 0.6rem 0 0.9rem; font: 800 clamp(2.4rem, 5vw, 4rem)/0.95 var(--nfl-display); text-transform: uppercase; letter-spacing: 0.01em; }
+.hero h1 span { color: #FFD166; }
+.hero p { margin: 0 0 1.5rem; font-size: 1.1rem; line-height: 1.55; color: rgba(255, 255, 255, 0.85); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.hero-outline.mud-button-outlined { color: #fff; border-color: rgba(255, 255, 255, 0.6); }
+.hero-outline.mud-button-outlined:hover { background: rgba(255, 255, 255, 0.1); border-color: #fff; }
+
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.feature-card {
+  position: relative; display: flex; flex-direction: column; gap: 0.5rem; padding: 1.5rem; border-radius: 16px; overflow: hidden;
+  background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-lines-default); box-shadow: var(--nfl-card-shadow);
+  color: inherit; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.feature-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--accent); }
+.feature-card:hover { transform: translateY(-4px); box-shadow: var(--nfl-card-shadow-hover); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.feature-icon {
+  display: inline-grid; place-items: center; width: 3rem; height: 3rem; border-radius: 12px; margin-bottom: 0.25rem;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.feature-title { font: 800 1.5rem/1.1 var(--nfl-display); letter-spacing: 0.02em; text-transform: uppercase; }
+.feature-text { color: var(--mud-palette-text-secondary); line-height: 1.5; flex: 1; }
+.feature-cta { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.5rem; font-weight: 700; font-size: 0.9rem; color: var(--accent); }
+.feature-card:hover .feature-cta .mud-icon-root { transform: translateX(3px); }
+.feature-cta .mud-icon-root { transition: transform 0.2s; }
+
+/* ---------- Team, player and franchise headers ---------- */
+
+.team-banner {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap; padding: 2rem 2.25rem;
+  border-radius: 20px; color: #fff;
+  background:
+    radial-gradient(circle at 12% 50%, rgba(255, 255, 255, 0.18), transparent 40%),
+    linear-gradient(115deg, var(--team-color) 0%, color-mix(in srgb, var(--team-color) 55%, #000) 100%);
+  border-bottom: 6px solid var(--team-color-2);
+  box-shadow: 0 20px 40px -24px color-mix(in srgb, var(--team-color) 80%, #000);
+}
+.team-banner-logo {
+  display: grid; place-items: center; width: 7rem; height: 7rem; border-radius: 50%; flex: none;
+  background: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.team-banner-logo img { width: 4.75rem; height: 4.75rem; object-fit: contain; }
+.team-banner h1 { margin: 0.35rem 0 0.4rem; font: 800 clamp(2.2rem, 4.5vw, 3.5rem)/0.95 var(--nfl-display); text-transform: uppercase; letter-spacing: 0.01em; }
+.team-banner-record { display: flex; align-items: baseline; gap: 0.75rem; }
+.team-banner-record strong { font: 800 1.9rem/1 var(--nfl-display); }
+.team-banner-record span { opacity: 0.85; font-weight: 500; }
+.team-banner-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.team-banner-links a {
+  padding: 0.3rem 0.85rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.4); color: #fff; text-decoration: none;
+  font-size: 0.85rem; font-weight: 600; background: rgba(255, 255, 255, 0.08); transition: background-color 0.15s;
+}
+.team-banner-links a:hover { background: rgba(255, 255, 255, 0.22); }
+
+.team-header {
+  position: relative; padding: 1.25rem 1.5rem 1.25rem 1.75rem; border-radius: 16px; overflow: hidden;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--team-color) 12%, var(--mud-palette-surface)) 0%, var(--mud-palette-surface) 60%);
+  border: 1px solid var(--mud-palette-lines-default); box-shadow: var(--nfl-card-shadow);
+}
+.team-header::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--team-color); }
+
+/* ---------- Stat tiles ---------- */
+
+.stat.mud-paper { position: relative; overflow: hidden; padding: 1rem 1.25rem !important; text-align: left; }
+.stat.mud-paper::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--nfl-accent); }
+.stat-value { font: 800 2.4rem/1 var(--nfl-display); letter-spacing: 0.01em; color: var(--mud-palette-text-primary); font-variant-numeric: tabular-nums; }
+.stat-label { margin-top: 0.35rem; font-size: 0.72rem; font-weight: 700; color: var(--nfl-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
 #blazor-error-ui {
   background: lightyellow;

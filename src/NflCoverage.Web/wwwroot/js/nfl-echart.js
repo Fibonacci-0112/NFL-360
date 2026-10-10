@@ -40,12 +40,11 @@ class NflEChart extends HTMLElement {
   static observedAttributes = ["options"];
   #chart;
   #resizeObserver;
-  #theme = window.matchMedia("(prefers-color-scheme: dark)");
 
   async connectedCallback() {
     const echarts = await loadECharts();
     if (!this.isConnected || this.#chart) return;
-    this.#chart = echarts.init(this, this.#theme.matches ? "dark" : undefined, { renderer: "svg" });
+    this.#chart = echarts.init(this, document.documentElement.dataset.theme === "dark" ? "dark" : undefined, { renderer: "svg" });
     this.#resizeObserver = new ResizeObserver(() => this.#chart?.resize());
     this.#resizeObserver.observe(this);
     this.#render();
