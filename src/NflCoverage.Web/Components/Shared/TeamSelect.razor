@@ -1,0 +1,20 @@
+<label class="team-select">
+    <span class="muted">@Label</span>
+    <select name="@Name">
+        <option value="">Choose…</option>
+        @foreach (var team in Teams)
+        {
+            <option value="@team.Id" selected="@(string.Equals(team.Id, Selected, StringComparison.OrdinalIgnoreCase))">@team.Name</option>
+        }
+    </select>
+</label>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired] public IReadOnlyList<TeamDto> Teams { get; set; } = [];
+
+    [Parameter] public string? Selected { get; set; }
+}

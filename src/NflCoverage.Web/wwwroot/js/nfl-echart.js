@@ -6,8 +6,19 @@ let echartsModule;
 const loadECharts = () => (echartsModule ??= import(ECHARTS_URL));
 
 // JSON cannot carry functions, so a few well-known formatter names are mapped here.
+const signed = (value, digits = 2) => (value == null ? "–" : `${value > 0 ? "+" : ""}${Number(value).toFixed(digits)}`);
+const escapeHtml = (text) => String(text ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
 const formatters = {
   percent: (value) => (value == null ? "–" : `${value}%`),
+  // Expected points added, signed: axis labels and simple values.
+  epa: (value) => signed(value),
+  // Scatter point [offense, defense] of a team.
+  teamEpa: (p) =>
+    `<strong>${escapeHtml(p.name)}</strong><br/>Offense: ${signed(p.value[0], 3)} EPA/play` +
+    `<br/>Defense: ${signed(p.value[1], 3)} EPA/play allowed`,
+  // Data items carry a "detail" line (record, playoff result, score...) next to their value.
+  detail: (p) => `<strong>${escapeHtml(p.name)}</strong><br/>${escapeHtml(p.data?.detail ?? p.value)}`,
 };
 
 function reviveFormatters(node) {

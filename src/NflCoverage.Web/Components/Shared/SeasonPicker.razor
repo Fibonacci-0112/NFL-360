@@ -1,0 +1,31 @@
+@*
+    A plain GET form, so changing the season works in static SSR. The select submits on change when script runs;
+    the button covers the case where it does not.
+*@
+<form method="get" action="@Action" class="season-picker">
+    @foreach (var (name, value) in Hidden)
+    {
+        <input type="hidden" name="@name" value="@value" />
+    }
+    <label>
+        <span class="muted">Season</span>
+        <select name="season" onchange="this.form.submit()">
+            @foreach (var season in Seasons)
+            {
+                <option value="@season" selected="@(season == Selected)">@season</option>
+            }
+        </select>
+    </label>
+    <button type="submit" class="go">Go</button>
+</form>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<int> Seasons { get; set; } = [];
+
+    [Parameter] public int Selected { get; set; }
+
+    [Parameter, EditorRequired] public string Action { get; set; } = "";
+
+    /// <summary>Query values to keep, such as the selected category.</summary>
+    [Parameter] public Dictionary<string, string> Hidden { get; set; } = [];
+}

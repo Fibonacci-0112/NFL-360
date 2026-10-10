@@ -1,0 +1,132 @@
+@page "/history/head-to-head"
+@using System.Text.Json
+@inject IHistoryQueries History
+@inject ILeagueQueries League
+@attribute [StreamRendering]
+
+<PageTitle>@(_series is null ? "Head-to-head" : $"{_series.TeamA} vs {_series.TeamB}")</PageTitle>
+
+<HistorySectionNav Active="head-to-head" />
+
+<MudText Typo="Typo.h4" GutterBottom="true">Head-to-head</MudText>
+
+<form method="get" action="/history/head-to-head" class="h2h-form mb-4">
+    <TeamSelect Name="a" Label="Team" Teams="_teams" Selected="@A" />
+    <span class="muted">vs</span>
+    <TeamSelect Name="b" Label="Opponent" Teams="_teams" Selected="@B" />
+    <button type="submit">Compare</button>
+    @if (!string.IsNullOrEmpty(A) && !string.IsNullOrEmpty(B))
+    {
+        <a class="swap" href="/history/head-to-head?a=@B&b=@A">Swap</a>
+    }
+</form>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (string.IsNullOrEmpty(A) || string.IsNullOrEmpty(B))
+{
+    <MudText Typo="Typo.body2" Class="muted">Pick two teams to see their series since 1999: record, streak, recent and playoff meetings.</MudText>
+}
+else if (_series is null)
+{
+    <MudAlert Severity="Severity.Warning">Pick two different teams.</MudAlert>
+}
+else if (_series.Overall.Games == 0)
+{
+    <MudAlert Severity="Severity.Info">@_series.TeamA and @_series.TeamB have not met since the data begins.</MudAlert>
+}
+else
+{
+    var a = _series.TeamA;
+    var b = _series.TeamB;
+    <MudGrid Class="mb-4">
+        <MudItem xs="6" md="3"><Stat Label="@($"Series ({a}–{b}{(_series.Overall.Ties > 0 ? "–T" : "")})")" Value="@Series(_series.Overall)" /></MudItem>
+        <MudItem xs="6" md="3"><Stat Label="Regular season" Value="@Series(_series.Regular)" /></MudItem>
+        <MudItem xs="6" md="3"><Stat Label="Playoffs" Value="@(_series.Playoffs.Games == 0 ? "–" : Series(_series.Playoffs))" /></MudItem>
+        <MudItem xs="6" md="3"><Stat Label="Streak" Value="@Streak(_series.Streak)" /></MudItem>
+    </MudGrid>
+    <MudText Typo="Typo.body2" Class="mb-4 muted">Points: @a @_series.PointsA, @b @_series.PointsB.</MudText>
+
+    <MudPaper Class="pa-2 mb-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="px-2">Margin in the last @_series.LastMeetings.Count meetings (@a's view)</MudText>
+        <EChart OptionsJson="@MarginChart()" Height="240px" Label="@($"Point margin for {a} in recent meetings with {b}")" />
+    </MudPaper>
+
+    <MudGrid>
+        <MudItem xs="12" md="7">
+            <MeetingsTable Title="Last meetings" Meetings="_series.LastMeetings" Teams="_teamInfo" />
+        </MudItem>
+        <MudItem xs="12" md="5">
+            @if (_series.PlayoffMeetings.Count > 0)
+            {
+                <MeetingsTable Title="Playoff meetings" Meetings="_series.PlayoffMeetings" Teams="_teamInfo" />
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "a")] public string? A { get; set; }
+
+    [SupplyParameterFromQuery(Name = "b")] public string? B { get; set; }
+
+    private IReadOnlyList<TeamDto> _teams = [];
+    private Dictionary<string, TeamInfo> _teamInfo = [];
+    private HeadToHead? _series;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _teams = [.. (await League.GetTeamsAsync()).OrderBy(t => t.Name)];
+        _teamInfo = Format.Directory(_teams);
+        A = A?.ToUpperInvariant();
+        B = B?.ToUpperInvariant();
+        _series = string.IsNullOrEmpty(A) || string.IsNullOrEmpty(B) ? null : await History.GetHeadToHeadAsync(A, B);
+        _loading = false;
+    }
+
+    private static string Series(SeriesRecord record) => Format.Record(record.WinsA, record.WinsB, record.Ties);
+
+    private static string Streak(Streak? streak) => streak switch
+    {
+        null => "–",
+        { Team: null } => $"{streak.Games} tie{(streak.Games == 1 ? "" : "s")}",
+        _ => $"{streak.Team} W{streak.Games}",
+    };
+
+    private string MarginChart()
+    {
+        var a = _series!.TeamA;
+        var meetings = _series.LastMeetings.Reverse().ToList();
+        var options = new
+        {
+            grid = new { left = 40, right = 16, top = 16, bottom = 48 },
+            tooltip = new { trigger = "item", formatter = "detail" },
+            xAxis = new { type = "category", data = meetings.Select(m => m.GameId), axisLabel = new { show = false } },
+            yAxis = new { type = "value" },
+            series = new[]
+            {
+                new
+                {
+                    type = "bar",
+                    data = meetings.Select(m =>
+                    {
+                        var margin = m.HomeTeam == a ? m.HomeScore - m.AwayScore : m.AwayScore - m.HomeScore;
+                        var winner = m.Winner;
+                        return new
+                        {
+                            name = $"{m.Season} {(m.GameType == GameTypes.Regular ? $"week {m.Week}" : m.GameType)}",
+                            value = margin,
+                            detail = $"{m.AwayTeam} {m.AwayScore} @ {m.HomeTeam} {m.HomeScore}",
+                            itemStyle = new { color = winner is null ? "#9e9e9e" : _teamInfo.GetValueOrDefault(winner)?.PrimaryColor ?? "#888888" },
+                        };
+                    }),
+                },
+            },
+        };
+        return JsonSerializer.Serialize(options);
+    }
+}

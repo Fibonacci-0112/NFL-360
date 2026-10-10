@@ -1,0 +1,62 @@
+@page "/players"
+@inject IStatsQueries Stats
+@inject ILeagueQueries League
+@attribute [StreamRendering]
+
+<PageTitle>Player search</PageTitle>
+
+<StatsSectionNav Active="search" />
+
+<MudText Typo="Typo.h4" GutterBottom="true">Player search</MudText>
+
+<form method="get" action="/players" class="search-form mb-4" role="search">
+    <input type="search" name="q" value="@Q" placeholder="Player name, e.g. Mahomes" aria-label="Player name" minlength="2" required />
+    <button type="submit">Search</button>
+</form>
+
+@if (string.IsNullOrWhiteSpace(Q))
+{
+    <MudText Typo="Typo.body2" Class="muted">Every player since 1999, from the nflverse player directory.</MudText>
+}
+else if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_results.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No players match “@Q”.</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead><tr><th>Player</th><th>Team</th><th class="num">Seasons</th></tr></thead>
+            <tbody>
+                @foreach (var player in _results)
+                {
+                    <tr>
+                        <td><PlayerLink Id="@player.Id" Name="@player.Name" HeadshotUrl="@player.HeadshotUrl" Position="@player.Position" /></td>
+                        <td>@if (player.LatestTeam is { } team) { <TeamBadge Id="@team" Team="@_teams.GetValueOrDefault(team)" /> }</td>
+                        <td class="num">@(player.RookieSeason is { } first ? $"{first}–{player.LastSeason}" : "")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+
+    private IReadOnlyList<PlayerSummary> _results = [];
+    private Dictionary<string, TeamInfo> _teams = [];
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _teams = Format.Directory(await League.GetTeamsAsync());
+        _results = string.IsNullOrWhiteSpace(Q) ? [] : await Stats.SearchPlayersAsync(Q, limit: 50);
+        _loading = false;
+    }
+}

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NflCoverage.Modules.History.Contracts\NflCoverage.Modules.History.Contracts.csproj" />
+    <ProjectReference Include="..\..\League\NflCoverage.Modules.League.Contracts\NflCoverage.Modules.League.Contracts.csproj" />
+    <ProjectReference Include="..\..\Standings\NflCoverage.Modules.Standings.Contracts\NflCoverage.Modules.Standings.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="NflCoverage.Modules.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,15 @@
+<LinkTabs Label="Stats sections" Class="mb-4 section-nav" Items="@Items" />
+
+@code {
+    /// <summary>players, teams or search.</summary>
+    [Parameter, EditorRequired] public string Active { get; set; } = "";
+
+    [Parameter] public int Season { get; set; }
+
+    private IEnumerable<(string, string, bool)> Items =>
+    [
+        ("Player leaders", Season > 0 ? $"/stats/players/{Season}" : "/stats/players", Active == "players"),
+        ("Team efficiency", Season > 0 ? $"/stats/teams/{Season}" : "/stats/teams", Active == "teams"),
+        ("Player search", "/players", Active == "search"),
+    ];
+}

@@ -1,0 +1,151 @@
+@page "/stats/teams/{Season:int?}"
+@using System.Text.Json
+@inject IStatsQueries Stats
+@inject ILeagueQueries League
+@attribute [StreamRendering]
+
+<PageTitle>@(_season == 0 ? "Team efficiency" : $"{_season} team efficiency")</PageTitle>
+
+<StatsSectionNav Active="teams" Season="_season" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2 flex-wrap">
+    <MudText Typo="Typo.h4">@(_season == 0 ? "" : _season.ToString()) Team efficiency</MudText>
+    <SeasonPicker Seasons="_seasons" Selected="_season" Action="/stats/teams" Hidden="@(new() { ["type"] = SeasonTypes.Code(_type) })" />
+</MudStack>
+
+<LinkTabs Label="Season type" Class="mb-3 small" Items="@(new[] { ("Regular season", Url(SeasonType.Regular), _type == SeasonType.Regular), ("Postseason", Url(SeasonType.Postseason), _type == SeasonType.Postseason) })" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_rows.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">No team statistics for this season yet. Statistics are imported from nflverse in the background.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.body2" Class="mb-3 muted">
+        Expected points added (EPA) per play on dropbacks and runs. Defense is the EPA opponents gained per play against
+        that team, so lower is better; the chart puts better defenses at the top.
+    </MudText>
+
+    <MudPaper Class="pa-2 mb-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="px-2">Offense vs. defense EPA per play</MudText>
+        <EChart OptionsJson="@ScatterOptions()" Height="560px" Label="Scatter plot of offense EPA per play against defense EPA per play allowed, one point per team" />
+    </MudPaper>
+
+    <MudPaper Class="pa-2" Elevation="1">
+        <div class="grid-scroll">
+            <QuickGrid Items="_rows.AsQueryable()" Class="stats-grid" ItemKey="r => r.Team">
+                <GridTemplateColumn Title="Team" SortBy="ByTeam">
+                    <a href="/teams/@context.Team/@_season"><TeamBadge Id="@context.Team" Team="@_teams.GetValueOrDefault(context.Team)" /></a>
+                </GridTemplateColumn>
+                <NumberColumn Property="r => r.Games" Title="G" Sortable="true" />
+                <NumberColumn Property="r => r.OffenseRank" Title="Off. rank" Sortable="true" />
+                <NumberColumn Property="r => r.OffenseEpaPerPlay" Title="Off. EPA/play" Format="+0.000;-0.000;0.000" Sortable="true" />
+                <NumberColumn Property="r => r.PassEpaPerDropback" Title="Pass EPA/db" Format="+0.000;-0.000;0.000" Sortable="true" />
+                <NumberColumn Property="r => r.RushEpaPerCarry" Title="Rush EPA/car" Format="+0.000;-0.000;0.000" Sortable="true" />
+                <NumberColumn Property="r => r.YardsPerPlay" Title="Yds/play" Format="0.00" Sortable="true" />
+                <NumberColumn Property="r => r.DefenseRank" Title="Def. rank" Sortable="true" />
+                <NumberColumn Property="r => r.DefenseEpaPerPlay" Title="Def. EPA/play" Format="+0.000;-0.000;0.000" Sortable="true" />
+                <NumberColumn Property="r => r.YardsAllowedPerPlay" Title="Yds/play allowed" Format="0.00" Sortable="true" />
+                <NumberColumn Property="r => r.Takeaways" Title="Takeaways" Sortable="true" />
+                <NumberColumn Property="r => r.Giveaways" Title="Giveaways" Sortable="true" />
+                <NumberColumn Property="r => r.TurnoverDifferential" Title="TO diff" Format="+0;-0;0" Sortable="true" />
+            </QuickGrid>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int? Season { get; set; }
+
+    [SupplyParameterFromQuery(Name = "season")] public int? SeasonQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "type")] public string? TypeQuery { get; set; }
+
+    private readonly GridSort<TeamComparisonRow> ByTeam = GridSort<TeamComparisonRow>.ByAscending(r => r.Team);
+    private int _season;
+    private SeasonType _type;
+    private IReadOnlyList<int> _seasons = [];
+    private IReadOnlyList<TeamComparisonRow> _rows = [];
+    private Dictionary<string, TeamInfo> _teams = [];
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _type = SeasonTypes.Parse(TypeQuery);
+        _seasons = await Stats.GetSeasonsAsync();
+        _season = SeasonQuery ?? Season ?? _seasons.FirstOrDefault();
+        _teams = Format.Directory(await League.GetTeamsAsync());
+        _rows = await Stats.GetTeamComparisonAsync(_season, _type);
+        _loading = false;
+    }
+
+    private string Url(SeasonType type) => $"/stats/teams/{_season}" + (type == SeasonType.Postseason ? "?type=POST" : "");
+
+    /// <summary>One point per team (its logo when known), dashed lines at the league average, quadrants labelled.</summary>
+    private string ScatterOptions()
+    {
+        var averageOffense = _rows.Average(r => r.OffenseEpaPerPlay);
+        var averageDefense = _rows.Average(r => r.DefenseEpaPerPlay);
+        var options = new
+        {
+            grid = new { left = 72, right = 24, top = 32, bottom = 56 },
+            tooltip = new { trigger = "item", formatter = "teamEpa" },
+            xAxis = new
+            {
+                type = "value", scale = true, name = "Offense EPA per play  →  better", nameLocation = "middle", nameGap = 32,
+                axisLabel = new { formatter = "epa" }, splitLine = new { show = false },
+            },
+            yAxis = new
+            {
+                type = "value", scale = true, inverse = true, name = "Defense EPA per play allowed  →  better", nameLocation = "middle", nameGap = 52,
+                axisLabel = new { formatter = "epa" }, splitLine = new { show = false },
+            },
+            graphic = new object[]
+            {
+                Quadrant("Good offense, good defense", right: 32, top: 40, color: "#2e7d32"),
+                Quadrant("Bad offense, good defense", left: 84, top: 40, color: "#888888"),
+                Quadrant("Good offense, bad defense", right: 32, bottom: 64, color: "#888888"),
+                Quadrant("Bad offense, bad defense", left: 84, bottom: 64, color: "#c62828"),
+            },
+            series = new object[]
+            {
+                new
+                {
+                    type = "scatter",
+                    data = _rows.Select(r => new
+                    {
+                        name = _teams.GetValueOrDefault(r.Team)?.Name ?? r.Team,
+                        value = new[] { Math.Round(r.OffenseEpaPerPlay, 4), Math.Round(r.DefenseEpaPerPlay, 4) },
+                        symbol = _teams.GetValueOrDefault(r.Team)?.LogoUrl is { } logo ? "image://" + logo : "circle",
+                        symbolSize = 34,
+                        itemStyle = new { color = _teams.GetValueOrDefault(r.Team)?.PrimaryColor ?? "#888888" },
+                    }),
+                    markLine = new
+                    {
+                        silent = true,
+                        symbol = "none",
+                        label = new { show = false },
+                        lineStyle = new { type = "dashed", color = "#9e9e9e" },
+                        data = new object[] { new { xAxis = Math.Round(averageOffense, 4) }, new { yAxis = Math.Round(averageDefense, 4) } },
+                    },
+                },
+            },
+        };
+        return JsonSerializer.Serialize(options);
+    }
+
+    private static object Quadrant(string text, string color, int? left = null, int? right = null, int? top = null, int? bottom = null)
+    {
+        var element = new Dictionary<string, object> { ["type"] = "text", ["silent"] = true, ["style"] = new { text, fill = color, fontSize = 12, fontWeight = 500 } };
+        if (left is not null) element["left"] = left;
+        if (right is not null) element["right"] = right;
+        if (top is not null) element["top"] = top;
+        if (bottom is not null) element["bottom"] = bottom;
+        return element;
+    }
+}

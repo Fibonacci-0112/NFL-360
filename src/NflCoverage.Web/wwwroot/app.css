@@ -12,6 +12,66 @@ body { font-family: Roboto, system-ui, sans-serif; }
 
 .brand { font-weight: 700; font-size: 1.25rem; letter-spacing: 0.02em; }
 .top-nav { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.nav-search input {
+  margin-left: 0.5rem; padding: 0.3rem 0.6rem; width: 11rem; border-radius: 4px; border: none;
+  background: rgba(255, 255, 255, 0.15); color: inherit; font: inherit;
+}
+.nav-search input::placeholder { color: rgba(255, 255, 255, 0.7); }
+
+.muted { color: var(--nfl-muted); }
+.small { font-size: 0.85rem; }
+
+/* Link rows styled as tabs; plain GET navigation keeps them working without interactivity. */
+.link-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--mud-palette-lines-default); }
+.link-tabs a {
+  padding: 0.4rem 0.75rem; color: inherit; text-decoration: none; border-bottom: 2px solid transparent;
+  white-space: nowrap; opacity: 0.8;
+}
+.link-tabs a:hover { opacity: 1; background: var(--mud-palette-action-default-hover); }
+.link-tabs a.active { border-bottom-color: var(--mud-palette-primary); font-weight: 500; opacity: 1; }
+.link-tabs.small a { padding: 0.25rem 0.6rem; font-size: 0.85rem; }
+.link-tabs.small { border-bottom: none; }
+
+.season-picker, .search-form, .h2h-form { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.season-picker label, .team-select { display: inline-flex; align-items: center; gap: 0.4rem; }
+.season-picker select, .search-form input, .h2h-form select, .season-picker button, .search-form button, .h2h-form button {
+  font: inherit; padding: 0.35rem 0.6rem; border-radius: 4px; border: 1px solid var(--mud-palette-lines-inputs);
+  background: var(--mud-palette-surface); color: var(--mud-palette-text-primary);
+}
+.search-form input { min-width: 16rem; }
+.search-form button, .h2h-form button { background: var(--mud-palette-primary); color: var(--mud-palette-primary-text); border-color: transparent; cursor: pointer; }
+.h2h-form .swap { margin-left: 0.25rem; }
+
+/* QuickGrid tables: compact, scroll horizontally on narrow screens. */
+.grid-scroll { overflow-x: auto; }
+table.stats-grid { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+table.stats-grid th, table.stats-grid td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--mud-palette-lines-default); }
+table.stats-grid tbody tr:hover { background: var(--mud-palette-action-default-hover); }
+table.stats-grid th .col-title { color: inherit; text-decoration: none; }
+table.stats-grid th.num .col-header-content { justify-content: flex-end; }
+.paginator { margin-top: 0.5rem; }
+
+.player-link { display: inline-flex; align-items: center; gap: 0.5rem; color: inherit; text-decoration: none; white-space: nowrap; }
+.player-link:hover span:first-of-type { text-decoration: underline; }
+.player-link img, .headshot-placeholder { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--mud-palette-background-gray); flex: none; }
+.headshot-placeholder { display: inline-block; }
+.headshot-large { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background: var(--mud-palette-background-gray); }
+
+.bio { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.75rem; margin: 0.5rem 0 0; font-size: 0.9rem; }
+.bio dt { color: var(--nfl-muted); }
+.bio dd { margin: 0; }
+
+td.group-start, th.group-start { border-left: 1px solid var(--mud-palette-lines-default); }
+tr.total td { font-weight: 500; border-top: 2px solid var(--mud-palette-lines-default); }
+
+.chart-legend { display: flex; gap: 1rem; justify-content: center; font-size: 0.8rem; color: var(--nfl-muted); padding-bottom: 0.25rem; }
+.chart-legend i { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.3rem; vertical-align: -1px; }
+
+.picker-team { padding: 0.15rem 0; }
+.picker-team a { display: inline-flex; align-items: center; gap: 0.4rem; color: inherit; text-decoration: none; }
+.picker-team a:hover { text-decoration: underline; }
+
+.winner { font-weight: 700; }
 
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .up { color: var(--nfl-up); font-weight: 500; }

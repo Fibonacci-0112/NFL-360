@@ -10,7 +10,12 @@
             <MudButton Href="/standings" Color="Color.Inherit">Standings</MudButton>
             <MudButton Href="/playoffs/odds" Color="Color.Inherit">Playoff odds</MudButton>
             <MudButton Href="/playoffs/what-if" Color="Color.Inherit">What-if</MudButton>
+            <MudButton Href="/stats/players" Color="Color.Inherit">Stats</MudButton>
+            <MudButton Href="/history" Color="Color.Inherit">History</MudButton>
         </nav>
+        <form method="get" action="/players" class="nav-search" role="search">
+            <input type="search" name="q" placeholder="Search players" aria-label="Search players" minlength="2" required />
+        </form>
     </MudAppBar>
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">

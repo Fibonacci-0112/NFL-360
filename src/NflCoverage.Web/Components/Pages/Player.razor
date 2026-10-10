@@ -1,0 +1,215 @@
+@page "/players/{Id}"
+@using System.Text.Json
+@inject IStatsQueries Stats
+@inject ILeagueQueries League
+@inject TimeProvider Clock
+@attribute [StreamRendering]
+
+<PageTitle>@(_player?.Name ?? "Player")</PageTitle>
+
+<StatsSectionNav Active="search" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_player is null)
+{
+    <MudAlert Severity="Severity.Warning">Unknown player “@Id”. <a href="/players">Search players</a>.</MudAlert>
+}
+else
+{
+    var team = _player.LatestTeam is { } latest ? _teams.GetValueOrDefault(latest) : null;
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4 team-header flex-wrap" Style="@($"--team-color:{team?.PrimaryColor ?? "#888"}")">
+        @if (_player.HeadshotUrl is not null)
+        {
+            <img class="headshot-large" src="@_player.HeadshotUrl" alt="@_player.Name" width="120" height="120" />
+        }
+        <div>
+            <MudText Typo="Typo.h4">@_player.Name</MudText>
+            <MudText Typo="Typo.subtitle1">
+                @(_player.Position ?? "")
+                @if (_player.LatestTeam is { } latestTeam)
+                {
+                    <span> · </span><a href="/teams/@latestTeam"><TeamBadge Id="@latestTeam" Team="@team" /></a>
+                }
+                @if (_player.RookieSeason is { } rookie)
+                {
+                    <span> · @rookie–@(_player.LastSeason?.ToString() ?? "")</span>
+                }
+            </MudText>
+            <dl class="bio">
+                @if (_player.BirthDate is { } born)
+                {
+                    <dt>Born</dt><dd>@born.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture) (age @Age(born))</dd>
+                }
+                @if (_player.College is { } college)
+                {
+                    <dt>College</dt><dd>@college</dd>
+                }
+                <dt>Draft</dt><dd>@Draft(_player)</dd>
+            </dl>
+        </div>
+    </MudStack>
+
+    <LinkTabs Label="Season type" Class="mb-3 small" Items="@(new[] { ("Regular season", $"/players/{Id}", _type == SeasonType.Regular), ("Postseason", $"/players/{Id}?type=POST", _type == SeasonType.Postseason) })" />
+
+    @if (_lines.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">No @(_type == SeasonType.Regular ? "regular-season" : "postseason") statistics.</MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-2 mb-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="px-2">Career</MudText>
+            <div class="grid-scroll">
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead><tr><th>Season</th><th>Team</th><th class="num">G</th><StatHeaderCells Groups="_groups" /></tr></thead>
+                    <tbody>
+                        @foreach (var line in _lines)
+                        {
+                            <tr>
+                                <td><a href="/stats/players/@line.Season">@line.Season</a></td>
+                                <td>@if (line.Team is { } t) { <a href="/teams/@t/@line.Season"><TeamBadge Id="@t" Team="@_teams.GetValueOrDefault(t)" /></a> }</td>
+                                <td class="num">@line.Games</td>
+                                <StatCells Groups="_groups" Line="line.Stats" />
+                            </tr>
+                        }
+                    </tbody>
+                    @if (_lines.Count > 1)
+                    {
+                        <tfoot><tr class="total"><td>Career</td><td></td><td class="num">@_lines.Sum(l => l.Games)</td><StatCells Groups="_groups" Line="StatsDisplay.Sum(_lines.Select(l => l.Stats))" /></tr></tfoot>
+                    }
+                </MudSimpleTable>
+            </div>
+        </MudPaper>
+
+        @if (_chartLines.Count > 1)
+        {
+            <MudPaper Class="pa-2 mb-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" Class="px-2">@_primary.Label by season</MudText>
+                <EChart OptionsJson="@CareerChart()" Height="300px" Label="@($"{_primary.Label} by season")" />
+            </MudPaper>
+        }
+    }
+
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudText Typo="Typo.h6" Class="px-2">@(_logSeason > 0 ? $"{_logSeason} game log" : "Game log")</MudText>
+        @if (_games.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="px-2 pb-2 muted">Game logs are kept for the most recent seasons only.</MudText>
+        }
+        else
+        {
+            <div class="grid-scroll">
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead><tr><th>Week</th><th>Opponent</th><th class="num">Result</th><StatHeaderCells Groups="_groups" /></tr></thead>
+                    <tbody>
+                        @foreach (var game in _games)
+                        {
+                            var schedule = _schedule.GetValueOrDefault(game.GameId);
+                            <tr>
+                                <td>@WeekLabel(game, schedule)</td>
+                                <td>
+                                    @if (game.Opponent is { } opponent)
+                                    {
+                                        <span class="muted">@(schedule?.HomeTeam == opponent ? "@ " : "vs ")</span>
+                                        <a href="/teams/@opponent/@game.Season"><TeamBadge Id="@opponent" Team="@_teams.GetValueOrDefault(opponent)" /></a>
+                                    }
+                                </td>
+                                <td class="num">@Result(game, schedule)</td>
+                                <StatCells Groups="_groups" Line="game.Stats" />
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    [SupplyParameterFromQuery(Name = "type")] public string? TypeQuery { get; set; }
+
+    private PlayerProfile? _player;
+    private SeasonType _type;
+    private List<PlayerSeasonStats> _lines = [];
+    private List<PlayerSeasonStats> _chartLines = [];
+    private IReadOnlyList<StatGroup> _groups = [];
+    private (string Label, Func<StatLine, double> Value) _primary;
+    private int _logSeason;
+    private IReadOnlyList<PlayerGameStats> _games = [];
+    private Dictionary<string, GameDto> _schedule = [];
+    private Dictionary<string, TeamInfo> _teams = [];
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _type = SeasonTypes.Parse(TypeQuery);
+        _player = await Stats.GetPlayerAsync(Id);
+        _teams = Format.Directory(await League.GetTeamsAsync());
+        if (_player is not null)
+        {
+            var career = await Stats.GetPlayerCareerAsync(Id);
+            _groups = StatsDisplay.GroupsFor(_player.PositionGroup, career) is { Count: > 0 } groups ? groups : [StatGroup.Fantasy];
+            _primary = StatsDisplay.PrimaryStat(_groups[0]);
+            _lines = [.. career.Where(c => c.SeasonType == _type)];
+            _chartLines = [.. career.Where(c => c.SeasonType == SeasonType.Regular)];
+            _logSeason = career.Count == 0 ? 0 : career.Max(c => c.Season);
+            _games = _logSeason == 0 ? [] : await Stats.GetPlayerGameLogAsync(Id, _logSeason);
+            _schedule = _games.Count == 0 ? [] : (await League.GetGamesAsync(_logSeason)).ToDictionary(g => g.Id);
+        }
+
+        _loading = false;
+    }
+
+    private int Age(DateOnly born)
+    {
+        var today = DateOnly.FromDateTime(Clock.GetUtcNow().UtcDateTime);
+        return today.Year - born.Year - (today < born.AddYears(today.Year - born.Year) ? 1 : 0);
+    }
+
+    private static string Draft(PlayerProfile p) =>
+        p.DraftYear is { } year
+            ? $"{year} · round {p.DraftRound}, pick {p.DraftPick}" + (p.DraftTeam is { } team ? $" ({team})" : "")
+            : "Undrafted";
+
+    private static string WeekLabel(PlayerGameStats game, GameDto? schedule) =>
+        schedule is { GameType: not GameTypes.Regular } ? schedule.GameType : $"{game.Week}";
+
+    private static string Result(PlayerGameStats game, GameDto? schedule)
+    {
+        if (schedule is not { HomeScore: { } home, AwayScore: { } away } || game.Team is null)
+        {
+            return "";
+        }
+
+        var (us, them) = schedule.HomeTeam == game.Team ? (home, away) : (away, home);
+        return $"{(us > them ? "W" : us < them ? "L" : "T")} {us}-{them}";
+    }
+
+    private string CareerChart()
+    {
+        var options = new
+        {
+            grid = new { left = 56, right = 16, top = 16, bottom = 32 },
+            tooltip = new { trigger = "axis" },
+            xAxis = new { type = "category", data = _chartLines.Select(l => l.Season.ToString(System.Globalization.CultureInfo.InvariantCulture)) },
+            yAxis = new { type = "value" },
+            series = new[]
+            {
+                new
+                {
+                    name = _primary.Label,
+                    type = "bar",
+                    data = _chartLines.Select(l => Math.Round(_primary.Value(l.Stats), 1)),
+                    itemStyle = new { color = _player?.LatestTeam is { } t ? _teams.GetValueOrDefault(t)?.PrimaryColor : "#013369" },
+                },
+            },
+        };
+        return JsonSerializer.Serialize(options);
+    }
+}

@@ -1,0 +1,51 @@
+@* Table cells for one stat line, grouped like StatHeaderCells. *@
+@foreach (var group in Groups)
+{
+    @switch (group)
+    {
+        case StatGroup.Passing:
+            var p = Line.Passing;
+            <td class="num group-start">@p.Completions</td><td class="num">@p.Attempts</td>
+            <td class="num">@Format.Ratio(StatFormulas.CompletionPct(p.Completions, p.Attempts))</td>
+            <td class="num">@Format.Number(p.Yards)</td><td class="num">@Format.Decimal(StatFormulas.YardsPerAttempt(p.Yards, p.Attempts))</td>
+            <td class="num">@p.Touchdowns</td><td class="num">@p.Interceptions</td>
+            <td class="num">@(p.Attempts > 0 ? Format.Decimal(StatFormulas.PasserRating(p)) : "–")</td>
+            <td class="num">@p.Sacks</td><td class="num">@(p.Attempts > 0 ? Format.Epa(p.Epa, "+0.0;-0.0;0.0") : "–")</td>
+            <td class="num">@Format.Epa(p.Cpoe, "+0.0;-0.0;0.0")</td>
+            break;
+        case StatGroup.Rushing:
+            var r = Line.Rushing;
+            <td class="num group-start">@r.Carries</td><td class="num">@Format.Number(r.Yards)</td>
+            <td class="num">@Format.Decimal(StatFormulas.YardsPerCarry(r.Yards, r.Carries))</td><td class="num">@r.Touchdowns</td>
+            <td class="num">@(r.Carries > 0 ? Format.Epa(r.Epa, "+0.0;-0.0;0.0") : "–")</td>
+            break;
+        case StatGroup.Receiving:
+            var c = Line.Receiving;
+            <td class="num group-start">@c.Targets</td><td class="num">@c.Receptions</td><td class="num">@Format.Number(c.Yards)</td>
+            <td class="num">@Format.Decimal(StatFormulas.YardsPerReception(c.Yards, c.Receptions))</td><td class="num">@c.Touchdowns</td>
+            <td class="num">@Format.Ratio(StatFormulas.CatchRate(c.Receptions, c.Targets))</td>
+            <td class="num">@(c.Targets > 0 ? Format.Epa(c.Epa, "+0.0;-0.0;0.0") : "–")</td>
+            break;
+        case StatGroup.Defense:
+            var d = Line.Defense;
+            <td class="num group-start">@d.Tackles</td><td class="num">@d.SoloTackles</td><td class="num">@d.AssistedTackles</td>
+            <td class="num">@Format.Number(d.TacklesForLoss)</td><td class="num">@Format.Number(d.Sacks)</td><td class="num">@d.QbHits</td>
+            <td class="num">@d.Interceptions</td><td class="num">@d.PassesDefended</td><td class="num">@d.ForcedFumbles</td>
+            break;
+        case StatGroup.Kicking:
+            var k = Line.Kicking;
+            <td class="num group-start">@k.FgMade</td><td class="num">@k.FgAttempted</td>
+            <td class="num">@Format.Ratio(StatFormulas.FieldGoalPct(k.FgMade, k.FgAttempted))</td>
+            <td class="num">@(k.FgLong?.ToString() ?? "–")</td><td class="num">@k.PatMade</td><td class="num">@k.PatAttempted</td>
+            break;
+        default:
+            <td class="num group-start">@Format.Decimal(Line.FantasyPointsPpr)</td>
+            break;
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<StatGroup> Groups { get; set; } = [];
+
+    [Parameter, EditorRequired] public StatLine Line { get; set; } = StatLine.None;
+}
