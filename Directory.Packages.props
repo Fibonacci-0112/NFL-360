@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AspNetCoreVersion>11.0.0-rc.1.26425.128</AspNetCoreVersion>
     <EfCoreVersion>11.0.0-rc.1.26425.128</EfCoreVersion>
-    <AspireVersion>13.6.1</AspireVersion>
+    <AspireVersion>13.6.4</AspireVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- ASP.NET Core / Blazor -->
